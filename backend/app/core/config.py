@@ -29,6 +29,10 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
+    redis_stream_name: str = "eventflow:jobs"
+    redis_consumer_group: str = "eventflow-workers"
+    # "memory" (default, no Redis required) or "redis" (RedisStreamQueuePublisher)
+    queue_publisher_backend: str = "memory"
 
     # API key auth
     api_key_header_name: str = "X-EventFlow-API-Key"

@@ -4,6 +4,9 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.config import get_settings
+from app.main import app as fastapi_app
+from app.queue.publisher import InMemoryQueuePublisher
+from app.transport.local_execution_client import get_queue_publisher
 
 
 @pytest.fixture(autouse=True)
@@ -52,10 +55,6 @@ def execution_payload(test_workflow_version_id):
     return {"workflow_version_id": test_workflow_version_id, "input_payload": {"hello": "world"}}
 
 
-from app.main import app as fastapi_app
-from app.queue.publisher import InMemoryQueuePublisher
-from app.transport.local_execution_client import get_queue_publisher
-
 @pytest.fixture
 def mock_queue_publisher():
     publisher = InMemoryQueuePublisher()
@@ -63,12 +62,13 @@ def mock_queue_publisher():
     yield publisher
     fastapi_app.dependency_overrides.pop(get_queue_publisher, None)
 
+
 @pytest.mark.asyncio
 async def test_create_execution(
-    client: AsyncClient, 
-    execution_payload: dict, 
-    auth_headers: dict, 
-    mock_queue_publisher: InMemoryQueuePublisher
+    client: AsyncClient,
+    execution_payload: dict,
+    auth_headers: dict,
+    mock_queue_publisher: InMemoryQueuePublisher,
 ):
     resp = await client.post("/api/v1/executions", json=execution_payload, headers=auth_headers)
     assert resp.status_code == 201
@@ -100,7 +100,7 @@ async def test_create_execution(
     assert len(pending_nodes) == 2
     for node in pending_nodes:
         assert node["attempt"] == 0
-        
+
     assert len(mock_queue_publisher.published_jobs) == 1
     published = mock_queue_publisher.published_jobs[0]
     assert published["execution_id"] == execution_id

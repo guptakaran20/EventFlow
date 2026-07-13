@@ -104,13 +104,15 @@ class ExecutionEngine:
                     to_status=NodeExecutionStatus.QUEUED,
                 )
 
-                await self.queue_publisher.publish_node_execution(
+                message_id = await self.queue_publisher.publish_node_execution(
                     execution_id=execution.id,
                     node_execution_id=node_exec.id,
                     workflow_version_id=version.id,
                     node_id=node_exec.node_id,
                     attempt=node_exec.attempt,
                 )
+                if message_id:
+                    node_exec.redis_message_id = message_id
 
         await self.session.commit()
         return await self.get_execution(execution.id, owner_api_key_id)

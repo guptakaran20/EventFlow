@@ -4,8 +4,10 @@ from uuid import UUID
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.db.session import get_db_session
-from app.queue.publisher import InMemoryQueuePublisher, QueuePublisher
+from app.queue.publisher import InMemoryQueuePublisher, QueuePublisher, RedisStreamQueuePublisher
+from app.queue.redis_client import get_redis
 from app.services.execution_engine import ExecutionEngine
 from app.services.executor_registry import ExecutorRegistry, get_executor_registry
 from app.transport.contracts import (
@@ -17,10 +19,19 @@ from app.transport.contracts import (
 
 
 async def get_queue_publisher() -> QueuePublisher:
-    # MVP: singleton in-memory publisher for local testing.
-    # We would normally inject a RedisPublisher here.
+    # Singleton publisher selected via settings.queue_publisher_backend
+    # ("memory" default, no Redis required; "redis" for RedisStreamQueuePublisher).
+    # Tests override this dependency directly regardless of the default.
     if not hasattr(get_queue_publisher, "_instance"):
-        get_queue_publisher._instance = InMemoryQueuePublisher()
+        settings = get_settings()
+        if settings.queue_publisher_backend == "redis":
+            get_queue_publisher._instance = RedisStreamQueuePublisher(
+                redis=get_redis(),
+                stream_name=settings.redis_stream_name,
+                consumer_group=settings.redis_consumer_group,
+            )
+        else:
+            get_queue_publisher._instance = InMemoryQueuePublisher()
     return get_queue_publisher._instance
 
 
