@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Caching/Linting
+.ruff_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+.next/
+dist/
+build/
+.nuxt/
+
+# IDE / Editor
+.vscode/
+.idea/
+.claude/
+.gemini/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+docs/
+cursor-prompts/

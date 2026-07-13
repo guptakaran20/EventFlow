@@ -1,0 +1,45 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
+from app.api import auth, health
+from app.core.config import get_settings
+from app.core.errors import register_exception_handlers
+from app.db.session import dispose_engine
+from app.queue.redis_client import close_redis
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await dispose_engine()
+    await close_redis()
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+
+    app = FastAPI(
+        title=settings.app_name,
+        description="Distributed workflow orchestration engine",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+
+    register_exception_handlers(app)
+
+    app.include_router(health.router)
+    app.include_router(auth.router)
+
+    from app.api import workflows
+
+    app.include_router(workflows.router)
+
+    from app.api import executions
+
+    app.include_router(executions.router)
+
+    return app
+
+
+app = create_app()
