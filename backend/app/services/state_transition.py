@@ -76,10 +76,9 @@ class StateTransitionService:
 
         if to_status == NodeExecutionStatus.QUEUED:
             node.queued_at = datetime.now(UTC)
-            # FAILED -> RETRYING -> QUEUED means it increments attempt.
-            # Or if it's the first time QUEUED from PENDING, set attempt to 1 if it's 0.
-            if node.attempt == 0:
-                node.attempt = 1
+            # Every transition into QUEUED starts a new attempt: 0->1 the first time,
+            # then N->N+1 on each FAILED -> RETRYING -> QUEUED retry cycle.
+            node.attempt += 1
         elif to_status == NodeExecutionStatus.RUNNING:
             node.started_at = datetime.now(UTC)
         elif to_status in (

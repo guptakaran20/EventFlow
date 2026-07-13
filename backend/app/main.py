@@ -39,6 +39,10 @@ def create_app() -> FastAPI:
 
     app.include_router(executions.router)
 
+    from app.api import dlq
+
+    app.include_router(dlq.router)
+
     return app
 
 

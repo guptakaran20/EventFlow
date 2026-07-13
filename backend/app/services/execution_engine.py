@@ -11,6 +11,7 @@ from app.queue.publisher import QueuePublisher
 from app.schemas.workflow import WorkflowDefinition
 from app.services.dag_validator import validate_workflow
 from app.services.executor_registry import ExecutorRegistry
+from app.services.retry_policy import resolve_retry_policy
 from app.services.state_transition import StateTransitionService
 from app.transport.contracts import (
     ExecutionDTO,
@@ -73,15 +74,14 @@ class ExecutionEngine:
         # Persist NodeExecution records
         node_executions = []
         for node in definition.nodes:
+            retry_policy = resolve_retry_policy(node, definition)
             node_exec = NodeExecution(
                 execution_id=execution.id,
                 node_id=node.id,
                 node_type=node.type,
                 status=NodeExecutionStatus.PENDING,
                 attempt=0,
-                max_attempts=node.config.get("max_attempts", 1)
-                if isinstance(node.config, dict)
-                else 1,
+                max_attempts=retry_policy.max_attempts,
             )
             self.session.add(node_exec)
             node_executions.append(node_exec)

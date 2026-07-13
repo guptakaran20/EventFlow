@@ -6,10 +6,16 @@ from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.enums import NodeExecutionStatus
+from app.models.dlq import DeadLetterJob
+from app.models.enums import ExecutionStatus, NodeExecutionStatus
 from app.models.execution import Execution, NodeExecution
 from app.models.workflow import WorkflowVersion
-from app.queue.publisher import QueuePublisher, RedisStreamQueuePublisher, deserialize_job_payload
+from app.queue.publisher import (
+    QueuePublisher,
+    RedisStreamQueuePublisher,
+    deserialize_job_payload,
+    serialize_job_payload,
+)
 from app.schemas.workflow import Node, WorkflowDefinition
 from app.services.executor_registry import ExecutionContext, ExecutorRegistry, ExecutorResult
 from app.services.state_transition import StateTransitionService
@@ -121,8 +127,69 @@ async def process_job(
             from_status=NodeExecutionStatus.RUNNING,
             to_status=NodeExecutionStatus.FAILED,
         )
+        await _handle_node_failure(session, state_service, queue_publisher, execution, node)
 
     await session.commit()
+
+
+async def _handle_node_failure(
+    session: AsyncSession,
+    state_service: StateTransitionService,
+    queue_publisher: QueuePublisher,
+    execution: Execution,
+    node: NodeExecution,
+) -> None:
+    """Retry the node if attempts remain, otherwise dead-letter it.
+
+    MVP uses fixed (immediate) requeue instead of a sleeping backoff, so the
+    worker never blocks a thread waiting out a delay.
+    """
+    if node.attempt < node.max_attempts:
+        await state_service.transition_node_status(
+            node_execution_id=node.id,
+            from_status=NodeExecutionStatus.FAILED,
+            to_status=NodeExecutionStatus.RETRYING,
+        )
+        retried = await state_service.transition_node_status(
+            node_execution_id=node.id,
+            from_status=NodeExecutionStatus.RETRYING,
+            to_status=NodeExecutionStatus.QUEUED,
+        )
+        message_id = await queue_publisher.publish_node_execution(
+            execution_id=execution.id,
+            node_execution_id=retried.id,
+            workflow_version_id=execution.workflow_version_id,
+            node_id=retried.node_id,
+            attempt=retried.attempt,
+        )
+        if message_id:
+            retried.redis_message_id = message_id
+        return
+
+    await state_service.transition_node_status(
+        node_execution_id=node.id,
+        from_status=NodeExecutionStatus.FAILED,
+        to_status=NodeExecutionStatus.DEAD_LETTERED,
+    )
+    session.add(
+        DeadLetterJob(
+            execution_id=execution.id,
+            node_execution_id=node.id,
+            redis_message_id=node.redis_message_id,
+            reason=node.error_message or "max attempts exceeded",
+            attempts=node.attempt,
+            payload=serialize_job_payload(
+                execution.id, node.id, execution.workflow_version_id, node.node_id, node.attempt
+            ),
+        )
+    )
+
+    if execution.status == ExecutionStatus.RUNNING:
+        await state_service.transition_execution_status(
+            execution_id=execution.id,
+            from_status=ExecutionStatus.RUNNING,
+            to_status=ExecutionStatus.FAILED,
+        )
 
 
 async def _queue_downstream_nodes(

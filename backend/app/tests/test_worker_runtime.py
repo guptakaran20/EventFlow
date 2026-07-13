@@ -289,12 +289,16 @@ async def test_failed_executor_marks_node_failed_with_no_retry(db: AsyncSession)
     await process_job(db, make_registry(FailingExecutor()), publisher, fields)
 
     await db.refresh(nodes["node1"])
-    assert nodes["node1"].status == NodeExecutionStatus.FAILED
+    # max_attempts defaults to 1, so a single failure exhausts retries immediately
+    # and the node is dead-lettered (Phase 8 behavior) rather than staying FAILED.
+    assert nodes["node1"].status == NodeExecutionStatus.DEAD_LETTERED
     assert nodes["node1"].error_message == "boom"
+    assert publisher.published_jobs == []
     assert nodes["node1"].attempt == 1
 
-    dlq_count = len((await db.execute(select(DeadLetterJob))).scalars().all())
-    assert dlq_count == 0
+    stmt = select(DeadLetterJob).where(DeadLetterJob.node_execution_id == nodes["node1"].id)
+    dlq_count = len((await db.execute(stmt)).scalars().all())
+    assert dlq_count == 1
 
 
 @pytest.mark.asyncio
