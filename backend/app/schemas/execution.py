@@ -1,7 +1,10 @@
 import uuid
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+
+from app.models.enums import LogLevel
 
 
 class CreateExecutionRequest(BaseModel):
@@ -34,3 +37,23 @@ class ExecutionResponse(BaseModel):
     node_executions: list[NodeExecutionResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ExecutionLogResponse(BaseModel):
+    log_id: uuid.UUID
+    timestamp: datetime
+    level: LogLevel
+    message: str
+    metadata: dict[str, Any] | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @classmethod
+    def from_log(cls, log) -> "ExecutionLogResponse":
+        return cls(
+            log_id=log.id,
+            timestamp=log.created_at,
+            level=log.level,
+            message=log.message,
+            metadata=log.log_metadata,
+        )

@@ -10,6 +10,13 @@ from app.models.dlq import DeadLetterJob
 from app.models.enums import ExecutionStatus, NodeExecutionStatus, WorkerStatus
 from app.models.execution import Execution, NodeExecution
 from app.models.workflow import WorkflowVersion
+from app.observability.log_helpers import (
+    dead_lettered,
+    node_failed,
+    node_started,
+    node_succeeded,
+    retry_scheduled,
+)
 from app.queue.publisher import (
     QueuePublisher,
     RedisStreamQueuePublisher,
@@ -67,6 +74,7 @@ async def process_job(
         from_status=NodeExecutionStatus.QUEUED,
         to_status=NodeExecutionStatus.RUNNING,
     )
+    node_started(session, node.execution_id, node.id, node.node_id)
     await session.commit()
 
     execution = await session.get(Execution, node.execution_id)
@@ -110,6 +118,7 @@ async def process_job(
             from_status=NodeExecutionStatus.RUNNING,
             to_status=NodeExecutionStatus.SUCCEEDED,
         )
+        node_succeeded(session, node.execution_id, node.id, node.node_id)
         await _queue_downstream_nodes(
             session,
             state_service,
@@ -128,6 +137,7 @@ async def process_job(
             from_status=NodeExecutionStatus.RUNNING,
             to_status=NodeExecutionStatus.FAILED,
         )
+        node_failed(session, node.execution_id, node.id, node.node_id, node.error_message)
         await _handle_node_failure(session, state_service, queue_publisher, execution, node)
 
     await session.commit()
@@ -156,6 +166,7 @@ async def _handle_node_failure(
             from_status=NodeExecutionStatus.RETRYING,
             to_status=NodeExecutionStatus.QUEUED,
         )
+        retry_scheduled(session, execution.id, retried.id, retried.node_id, retried.attempt)
         message_id = await queue_publisher.publish_node_execution(
             execution_id=execution.id,
             node_execution_id=retried.id,
@@ -172,6 +183,7 @@ async def _handle_node_failure(
         from_status=NodeExecutionStatus.FAILED,
         to_status=NodeExecutionStatus.DEAD_LETTERED,
     )
+    dead_lettered(session, execution.id, node.id, node.node_id, node.error_message)
     session.add(
         DeadLetterJob(
             execution_id=execution.id,

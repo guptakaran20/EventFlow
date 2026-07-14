@@ -4,13 +4,12 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Callable
-from datetime import UTC, datetime
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.enums import LogLevel, NodeExecutionStatus
-from app.models.log import ExecutionLog
+from app.models.enums import NodeExecutionStatus
+from app.observability.log_helpers import worker_recovered_job
 from app.queue.publisher import QueuePublisher, deserialize_job_payload
 from app.services.executor_registry import ExecutorRegistry
 from app.worker.runtime import TERMINAL_NODE_STATUSES, process_job
@@ -32,21 +31,14 @@ async def log_recovery_event(
     claiming_worker: str,
     recovery_reason: str,
 ) -> None:
-    session.add(
-        ExecutionLog(
-            execution_id=execution_id,
-            node_execution_id=node_execution_id,
-            level=LogLevel.INFO,
-            event_type=RECOVERY_EVENT_TYPE,
-            message="Stale pending job reclaimed",
-            log_metadata={
-                "previous_worker": previous_worker,
-                "claiming_worker": claiming_worker,
-                "redis_message_id": redis_message_id,
-                "recovery_reason": recovery_reason,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        )
+    worker_recovered_job(
+        session,
+        execution_id,
+        node_execution_id,
+        redis_message_id,
+        previous_worker,
+        claiming_worker,
+        recovery_reason,
     )
 
 
@@ -89,7 +81,6 @@ async def process_recovered_job(
         return False
 
     if node.status == NodeExecutionStatus.RUNNING:
-
         # Note: we manually override the transition rule since RUNNING->QUEUED isn't standard
         node.status = NodeExecutionStatus.QUEUED
         logger.info("reverted recovered job %s from RUNNING to QUEUED", node_execution_id)

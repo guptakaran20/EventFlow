@@ -47,6 +47,10 @@ def create_app() -> FastAPI:
 
     app.include_router(workers.router)
 
+    from app.api import metrics
+
+    app.include_router(metrics.router)
+
     return app
 
 

@@ -7,6 +7,7 @@ from app.core.errors import AppError
 from app.models.enums import ExecutionStatus, NodeExecutionStatus
 from app.models.execution import Execution, NodeExecution
 from app.models.workflow import Workflow, WorkflowVersion
+from app.observability.log_helpers import execution_started
 from app.queue.publisher import QueuePublisher
 from app.schemas.workflow import WorkflowDefinition
 from app.services.dag_validator import validate_workflow
@@ -87,6 +88,8 @@ class ExecutionEngine:
             node_executions.append(node_exec)
 
         await self.session.flush()
+
+        execution_started(self.session, execution.id)
 
         # Transition execution to RUNNING
         await self.state_service.transition_execution_status(
