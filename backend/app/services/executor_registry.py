@@ -23,6 +23,7 @@ class ExecutionContext:
     workflow_input: dict[str, Any]
     upstream_outputs: dict[str, Any]
     attempt: int
+    idempotency_key: str = ""
 
 
 @dataclass
@@ -100,12 +101,15 @@ class HttpExecutor:
     async def execute(self, context: ExecutionContext) -> ExecutorResult:
         config = context.config
         timeout = config.get("timeout_seconds", 10)
+        headers = dict(config.get("headers") or {})
+        if context.idempotency_key:
+            headers.setdefault("Idempotency-Key", context.idempotency_key)
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.request(
                     config.get("method", "GET").upper(),
                     config["url"],
-                    headers=config.get("headers") or {},
+                    headers=headers,
                     params=config.get("query"),
                     json=config.get("body"),
                 )
@@ -222,11 +226,14 @@ class WebhookExecutor:
     async def execute(self, context: ExecutionContext) -> ExecutorResult:
         config = context.config
         timeout = config.get("timeout_seconds", 10)
+        headers = dict(config.get("headers") or {})
+        if context.idempotency_key:
+            headers.setdefault("Idempotency-Key", context.idempotency_key)
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     config["target_url"],
-                    headers=config.get("headers") or {},
+                    headers=headers,
                     json=config.get("payload_template"),
                 )
         except httpx.HTTPError as exc:

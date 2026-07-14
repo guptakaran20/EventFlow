@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package eventflow;
+
+service WorkerControlService {
+  rpc ReportHeartbeat(WorkerHeartbeatRequest) returns (WorkerHeartbeatResponse);
+  rpc ClaimStaleJob(ClaimStaleJobRequest) returns (ClaimStaleJobResponse);
+}
+
+message WorkerHeartbeatRequest {
+  string worker_id = 1;
+  string status = 2;
+  optional string current_job_id = 3;
+}
+
+message WorkerHeartbeatResponse {
+  bool success = 1;
+}
+
+message ClaimStaleJobRequest {
+  string worker_id = 1;
+  string node_execution_id = 2;
+}
+
+message ClaimStaleJobResponse {
+  bool claimed = 1;
+}

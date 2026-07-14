@@ -99,6 +99,7 @@ async def process_job(
         execution_id=execution.id,
         node_execution_id=node.id,
         node_id=node.node_id,
+        idempotency_key=f"{execution.id}:{node.node_id}:{node.attempt}",
         config=node_def.config,
         workflow_input=execution.input_payload or {},
         upstream_outputs=upstream_outputs,

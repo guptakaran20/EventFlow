@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     queue_publisher_backend: str = "memory"
 
     # Worker lifecycle
+    worker_name: str | None = None
+    worker_concurrency: int = 4
     worker_heartbeat_interval_seconds: float = 5.0
     worker_pending_idle_timeout_seconds: float = 600.0
     worker_recovery_poll_interval_seconds: float = 30.0

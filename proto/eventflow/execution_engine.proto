@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package eventflow;
+
+import "google/protobuf/struct.proto";
+
+service ExecutionEngineService {
+  rpc StartExecution(StartExecutionRequest) returns (ExecutionDTO);
+  rpc GetExecution(GetExecutionRequest) returns (ExecutionDTO);
+  rpc GetNodeExecutions(GetNodeExecutionsRequest) returns (NodeExecutionListDTO);
+  rpc TransitionNode(TransitionNodeRequest) returns (NodeExecutionDTO);
+}
+
+message StartExecutionRequest {
+  string workflow_version_id = 1;
+  google.protobuf.Struct input_payload = 2;
+  string owner_api_key_id = 3;
+}
+
+message GetExecutionRequest {
+  string execution_id = 1;
+  string owner_api_key_id = 2;
+}
+
+message GetNodeExecutionsRequest {
+  string execution_id = 1;
+  string owner_api_key_id = 2;
+}
+
+message TransitionNodeRequest {
+  string execution_id = 1;
+  string node_execution_id = 2;
+  string status = 3;
+  google.protobuf.Struct result = 4;
+  optional string error = 5;
+}
+
+message NodeExecutionDTO {
+  string id = 1;
+  string execution_id = 2;
+  string node_id = 3;
+  string node_type = 4;
+  string status = 5;
+  int32 attempt = 6;
+  int32 max_attempts = 7;
+  google.protobuf.Struct input_payload = 8;
+  google.protobuf.Struct output_payload = 9;
+  optional string error_message = 10;
+}
+
+message ExecutionDTO {
+  string id = 1;
+  string workflow_id = 2;
+  string workflow_version_id = 3;
+  string status = 4;
+  google.protobuf.Struct input_payload = 5;
+  optional string error_message = 6;
+  repeated NodeExecutionDTO node_executions = 7;
+}
+
+message NodeExecutionListDTO {
+  repeated NodeExecutionDTO node_executions = 1;
+}

@@ -32,7 +32,7 @@ async def main() -> None:
     logging.basicConfig(level=logging.INFO)
     settings = get_settings()
     hostname = socket.gethostname()
-    consumer_name = f"worker-{hostname}-{os.getpid()}-{uuid.uuid4()}"
+    consumer_name = settings.worker_name or f"worker-{hostname}-{os.getpid()}-{uuid.uuid4()}"
     logger.info("starting worker %s", consumer_name)
 
     session_factory = get_session_factory()
@@ -75,6 +75,7 @@ async def main() -> None:
             stream_name=settings.redis_stream_name,
             consumer_group=settings.redis_consumer_group,
             consumer_name=consumer_name,
+            poll_count=settings.worker_concurrency,
             stop_event=stop_event,
             heartbeat=heartbeat,
         )
