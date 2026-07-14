@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     # "memory" (default, no Redis required) or "redis" (RedisStreamQueuePublisher)
     queue_publisher_backend: str = "memory"
 
+    # Worker lifecycle
+    worker_heartbeat_interval_seconds: float = 5.0
+    worker_pending_idle_timeout_seconds: float = 600.0
+    worker_recovery_poll_interval_seconds: float = 30.0
+
     # API key auth
     api_key_header_name: str = "X-EventFlow-API-Key"
     # Comma-separated bootstrap API keys usable before the API key table/service

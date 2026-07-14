@@ -178,7 +178,7 @@ async def test_worker_and_dead_letter_job(db: AsyncSession):
     db.add(execution)
     await db.flush()
 
-    worker = Worker(worker_name=f"worker-{uuid.uuid4()}", status=WorkerStatus.ONLINE)
+    worker = Worker(worker_name=f"worker-{uuid.uuid4()}", status=WorkerStatus.IDLE)
     db.add(worker)
     await db.flush()
 

@@ -43,6 +43,10 @@ def create_app() -> FastAPI:
 
     app.include_router(dlq.router)
 
+    from app.api import workers
+
+    app.include_router(workers.router)
+
     return app
 
 

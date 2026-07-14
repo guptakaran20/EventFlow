@@ -22,9 +22,11 @@ class NodeExecutionStatus(enum.StrEnum):
 
 
 class WorkerStatus(enum.StrEnum):
-    ONLINE = "ONLINE"
+    STARTING = "STARTING"
+    IDLE = "IDLE"
+    BUSY = "BUSY"
+    STOPPING = "STOPPING"
     OFFLINE = "OFFLINE"
-    STALE = "STALE"
 
 
 class LogLevel(enum.StrEnum):

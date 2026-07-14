@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dlq import DeadLetterJob
-from app.models.enums import ExecutionStatus, NodeExecutionStatus
+from app.models.enums import ExecutionStatus, NodeExecutionStatus, WorkerStatus
 from app.models.execution import Execution, NodeExecution
 from app.models.workflow import WorkflowVersion
 from app.queue.publisher import (
@@ -19,6 +19,7 @@ from app.queue.publisher import (
 from app.schemas.workflow import Node, WorkflowDefinition
 from app.services.executor_registry import ExecutionContext, ExecutorRegistry, ExecutorResult
 from app.services.state_transition import StateTransitionService
+from app.worker.heartbeat import HeartbeatController
 
 logger = logging.getLogger("app.worker")
 
@@ -272,11 +273,17 @@ async def run_worker(
     poll_count: int = 10,
     block_ms: int = 5000,
     stop_event: asyncio.Event | None = None,
+    heartbeat: HeartbeatController | None = None,
 ) -> None:
     """XREADGROUP consumer loop. ACKs only after durable DB state is committed."""
     await ensure_consumer_group(redis, stream_name, consumer_group)
 
-    while stop_event is None or not stop_event.is_set():
+    if heartbeat is not None:
+        await heartbeat.set_status(WorkerStatus.IDLE)
+
+    stop = stop_event or asyncio.Event()
+
+    while not stop.is_set():
         response = await redis.xreadgroup(
             groupname=consumer_group,
             consumername=consumer_name,
@@ -289,6 +296,15 @@ async def run_worker(
 
         for _stream_name, messages in response:
             for message_id, fields in messages:
+                job = deserialize_job_payload(fields)
+                current_job_id = str(job["node_execution_id"])
+                if heartbeat is not None:
+                    await heartbeat.set_status(WorkerStatus.BUSY, current_job_id)
+
                 async with session_factory() as session:
                     await process_job(session, registry, queue_publisher, fields)
+
                 await redis.xack(stream_name, consumer_group, message_id)
+
+                if heartbeat is not None:
+                    await heartbeat.set_status(WorkerStatus.IDLE)
