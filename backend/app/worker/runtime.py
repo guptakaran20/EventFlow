@@ -26,6 +26,7 @@ from app.queue.publisher import (
 from app.schemas.workflow import Node, WorkflowDefinition
 from app.services.executor_registry import ExecutionContext, ExecutorRegistry, ExecutorResult
 from app.services.state_transition import StateTransitionService
+from app.websocket.broadcaster import broadcast_worker_updated, flush_events
 from app.worker.heartbeat import HeartbeatController
 
 logger = logging.getLogger("app.worker")
@@ -76,6 +77,7 @@ async def process_job(
     )
     node_started(session, node.execution_id, node.id, node.node_id)
     await session.commit()
+    await flush_events(session)
 
     execution = await session.get(Execution, node.execution_id)
     version = await session.get(WorkflowVersion, execution.workflow_version_id)
@@ -142,6 +144,7 @@ async def process_job(
         await _handle_node_failure(session, state_service, queue_publisher, execution, node)
 
     await session.commit()
+    await flush_events(session)
 
 
 async def _handle_node_failure(
@@ -311,8 +314,15 @@ async def run_worker(
             for message_id, fields in messages:
                 job = deserialize_job_payload(fields)
                 current_job_id = str(job["node_execution_id"])
+                execution_id = job["execution_id"]
                 if heartbeat is not None:
                     await heartbeat.set_status(WorkerStatus.BUSY, current_job_id)
+                    await broadcast_worker_updated(
+                        execution_id,
+                        heartbeat.worker_id,
+                        WorkerStatus.BUSY.value,
+                        current_job_id,
+                    )
 
                 async with session_factory() as session:
                     await process_job(session, registry, queue_publisher, fields)
@@ -321,3 +331,6 @@ async def run_worker(
 
                 if heartbeat is not None:
                     await heartbeat.set_status(WorkerStatus.IDLE)
+                    await broadcast_worker_updated(
+                        execution_id, heartbeat.worker_id, WorkerStatus.IDLE.value, None
+                    )

@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import LogLevel
 from app.models.log import ExecutionLog
+from app.websocket import events
+from app.websocket.broadcaster import stage_event
 
 EVENT_EXECUTION_STARTED = "execution_started"
 EVENT_NODE_STARTED = "node_started"
@@ -40,6 +42,17 @@ def _add_log(
         log_metadata=metadata,
     )
     session.add(log)
+    stage_event(
+        session,
+        events.execution_log(
+            execution_id,
+            level.value,
+            event_type,
+            message,
+            node_execution_id,
+            metadata,
+        ),
+    )
     return log
 
 

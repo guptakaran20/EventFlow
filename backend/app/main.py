@@ -51,6 +51,10 @@ def create_app() -> FastAPI:
 
     app.include_router(metrics.router)
 
+    from app.api import websocket
+
+    app.include_router(websocket.router)
+
     return app
 
 

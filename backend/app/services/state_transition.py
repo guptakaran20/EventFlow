@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import AppError
 from app.models.enums import ExecutionStatus, NodeExecutionStatus
 from app.models.execution import Execution, NodeExecution
+from app.websocket import events
+from app.websocket.broadcaster import stage_event
 
 
 class StateTransitionService:
@@ -48,6 +50,7 @@ class StateTransitionService:
             execution.finished_at = datetime.now(UTC)
 
         await self.session.flush()
+        stage_event(self.session, events.execution_updated(execution.id, to_status.name))
         return execution
 
     async def transition_node_status(
@@ -90,4 +93,10 @@ class StateTransitionService:
             node.finished_at = datetime.now(UTC)
 
         await self.session.flush()
+        stage_event(
+            self.session,
+            events.node_updated(
+                node.execution_id, node.id, node.node_id, to_status.name, node.attempt
+            ),
+        )
         return node

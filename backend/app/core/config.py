@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     worker_pending_idle_timeout_seconds: float = 600.0
     worker_recovery_poll_interval_seconds: float = 30.0
 
+    # WebSocket heartbeat: server ping interval to detect dead client sockets.
+    websocket_heartbeat_interval_seconds: float = 20.0
+
     # API key auth
     api_key_header_name: str = "X-EventFlow-API-Key"
     # Comma-separated bootstrap API keys usable before the API key table/service

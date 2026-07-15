@@ -20,6 +20,7 @@ from app.transport.contracts import (
     StartExecutionCommand,
     TransitionNodeCommand,
 )
+from app.websocket.broadcaster import flush_events
 
 
 class ExecutionEngine:
@@ -118,6 +119,7 @@ class ExecutionEngine:
                     node_exec.redis_message_id = message_id
 
         await self.session.commit()
+        await flush_events(self.session)
         return await self.get_execution(execution.id, owner_api_key_id)
 
     async def get_execution(

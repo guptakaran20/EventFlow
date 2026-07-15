@@ -12,6 +12,7 @@ from app.models.enums import NodeExecutionStatus
 from app.observability.log_helpers import worker_recovered_job
 from app.queue.publisher import QueuePublisher, deserialize_job_payload
 from app.services.executor_registry import ExecutorRegistry
+from app.websocket.broadcaster import flush_events
 from app.worker.runtime import TERMINAL_NODE_STATUSES, process_job
 
 logger = logging.getLogger("app.worker.recovery")
@@ -78,6 +79,7 @@ async def process_recovered_job(
             node.status,
         )
         await session.commit()
+        await flush_events(session)
         return False
 
     if node.status == NodeExecutionStatus.RUNNING:
@@ -86,6 +88,7 @@ async def process_recovered_job(
         logger.info("reverted recovered job %s from RUNNING to QUEUED", node_execution_id)
 
     await session.commit()
+    await flush_events(session)
     await process_job(session, registry, queue_publisher, fields)
     return True
 
