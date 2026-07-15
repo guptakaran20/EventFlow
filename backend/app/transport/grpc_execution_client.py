@@ -59,6 +59,15 @@ class GrpcExecutionEngineClient:
                 return None
             raise
 
+    async def list_executions(
+        self,
+        owner_api_key_id: UUID,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[ExecutionDTO]:
+        raise NotImplementedError("ListExecutions gRPC stub not generated yet")
+
     async def get_node_executions(
         self, execution_id: UUID, owner_api_key_id: UUID
     ) -> list[NodeExecutionDTO]:

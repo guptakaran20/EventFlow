@@ -148,6 +148,45 @@ class ExecutionEngine:
             node_executions=node_dtos,
         )
 
+    async def list_executions(
+        self,
+        owner_api_key_id: uuid.UUID,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[ExecutionDTO]:
+        stmt = (
+            select(Execution)
+            .join(Workflow, Workflow.id == Execution.workflow_id)
+            .where(Workflow.owner_api_key_id == owner_api_key_id)
+        )
+        if status is not None:
+            try:
+                status_enum = ExecutionStatus[status]
+            except KeyError:
+                raise AppError(
+                    f"Invalid status: {status}", code="invalid_status", status_code=400
+                )
+            stmt = stmt.where(Execution.status == status_enum)
+        stmt = (
+            stmt.order_by(Execution.started_at.desc().nullslast())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        return [
+            ExecutionDTO(
+                id=execution.id,
+                workflow_id=execution.workflow_id,
+                workflow_version_id=execution.workflow_version_id,
+                status=execution.status.name,
+                input_payload=execution.input_payload,
+                error_message=execution.error_message,
+                node_executions=[],
+            )
+            for execution in result.scalars()
+        ]
+
     async def get_node_executions(
         self, execution_id: uuid.UUID, owner_api_key_id: uuid.UUID
     ) -> list[NodeExecutionDTO]:

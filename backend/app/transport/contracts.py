@@ -63,6 +63,14 @@ class ExecutionEngineClient(Protocol):
         self, execution_id: UUID, owner_api_key_id: UUID
     ) -> ExecutionDTO | None: ...
 
+    async def list_executions(
+        self,
+        owner_api_key_id: UUID,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[ExecutionDTO]: ...
+
     async def get_node_executions(
         self, execution_id: UUID, owner_api_key_id: UUID
     ) -> list[NodeExecutionDTO]: ...

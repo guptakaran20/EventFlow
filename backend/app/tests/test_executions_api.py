@@ -137,3 +137,54 @@ async def test_create_execution_not_found(client: AsyncClient, auth_headers: dic
     payload = {"workflow_version_id": str(uuid.uuid4()), "input_payload": {}}
     resp = await client.post("/api/v1/executions", json=payload, headers=auth_headers)
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_list_executions(
+    client: AsyncClient,
+    execution_payload: dict,
+    auth_headers: dict,
+    mock_queue_publisher: InMemoryQueuePublisher,
+):
+    for _ in range(2):
+        resp = await client.post(
+            "/api/v1/executions", json=execution_payload, headers=auth_headers
+        )
+        assert resp.status_code == 201
+
+    list_resp = await client.get("/api/v1/executions", headers=auth_headers)
+    assert list_resp.status_code == 200
+    data = list_resp.json()
+    assert len(data) >= 2
+    assert all(e["status"] == "RUNNING" for e in data)
+
+    filtered = await client.get(
+        "/api/v1/executions?status=RUNNING&limit=1", headers=auth_headers
+    )
+    assert filtered.status_code == 200
+    assert len(filtered.json()) == 1
+
+
+@pytest.mark.asyncio
+async def test_list_executions_owner_scoped(
+    client: AsyncClient,
+    execution_payload: dict,
+    auth_headers: dict,
+    other_auth_headers: dict,
+    mock_queue_publisher: InMemoryQueuePublisher,
+):
+    resp = await client.post(
+        "/api/v1/executions", json=execution_payload, headers=auth_headers
+    )
+    assert resp.status_code == 201
+    created_id = resp.json()["id"]
+
+    other_list = await client.get("/api/v1/executions", headers=other_auth_headers)
+    assert other_list.status_code == 200
+    assert created_id not in {e["id"] for e in other_list.json()}
+
+
+@pytest.mark.asyncio
+async def test_list_executions_invalid_status(client: AsyncClient, auth_headers: dict):
+    resp = await client.get("/api/v1/executions?status=BOGUS", headers=auth_headers)
+    assert resp.status_code == 400

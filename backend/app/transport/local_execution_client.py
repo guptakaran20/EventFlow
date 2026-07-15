@@ -59,6 +59,15 @@ class LocalExecutionEngineClient:
     ) -> ExecutionDTO | None:
         return await self.engine.get_execution(execution_id, owner_api_key_id)
 
+    async def list_executions(
+        self,
+        owner_api_key_id: UUID,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[ExecutionDTO]:
+        return await self.engine.list_executions(owner_api_key_id, status, limit, offset)
+
     async def get_node_executions(
         self, execution_id: UUID, owner_api_key_id: UUID
     ) -> list[NodeExecutionDTO]:

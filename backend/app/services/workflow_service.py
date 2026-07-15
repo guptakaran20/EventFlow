@@ -68,7 +68,9 @@ class WorkflowService:
 
         return workflow, version
 
-    async def list_workflows(self, owner_api_key_id: uuid.UUID) -> Sequence[tuple[Workflow, int]]:
+    async def list_workflows(
+        self, owner_api_key_id: uuid.UUID, limit: int = 50, offset: int = 0
+    ) -> Sequence[tuple[Workflow, int]]:
         """List workflows for an owner along with their latest version number."""
         stmt = (
             select(
@@ -78,6 +80,8 @@ class WorkflowService:
             .where(Workflow.owner_api_key_id == owner_api_key_id)
             .group_by(Workflow.id)
             .order_by(Workflow.created_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
         result = await self._db.execute(stmt)
         return result.all()  # returns list of (Workflow, int)

@@ -18,6 +18,20 @@ from app.transport.factory import get_execution_engine_client
 router = APIRouter(prefix="/api/v1/executions", tags=["executions"])
 
 
+@router.get("", response_model=list[ExecutionResponse])
+async def list_executions(
+    owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
+    client: Annotated[ExecutionEngineClient, Depends(get_execution_engine_client)],
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[ExecutionResponse]:
+    executions = await client.list_executions(
+        owner_api_key_id=owner_id, status=status, limit=limit, offset=offset
+    )
+    return [ExecutionResponse.model_validate(e) for e in executions]
+
+
 @router.post("", response_model=ExecutionResponse, status_code=201)
 async def create_execution(
     request: CreateExecutionRequest,
