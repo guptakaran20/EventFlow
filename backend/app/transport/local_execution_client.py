@@ -75,3 +75,8 @@ class LocalExecutionEngineClient:
 
     async def transition_node(self, command: TransitionNodeCommand) -> NodeExecutionDTO:
         return await self.engine.transition_node(command)
+
+    async def retry_node(
+        self, execution_id: UUID, node_id: str, owner_api_key_id: UUID
+    ) -> NodeExecutionDTO:
+        return await self.engine.retry_node(execution_id, node_id, owner_api_key_id)

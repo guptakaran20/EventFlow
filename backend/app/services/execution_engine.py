@@ -1,9 +1,11 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError
+from app.models.dlq import DeadLetterJob
 from app.models.enums import ExecutionStatus, NodeExecutionStatus
 from app.models.execution import Execution, NodeExecution
 from app.models.workflow import Workflow, WorkflowVersion
@@ -218,6 +220,78 @@ class ExecutionEngine:
             )
             for node in result_nodes.scalars()
         ]
+
+    async def retry_node(
+        self, execution_id: uuid.UUID, node_id: str, owner_api_key_id: uuid.UUID
+    ) -> NodeExecutionDTO:
+        # Load execution and node
+        stmt = (
+            select(NodeExecution, Execution)
+            .join(Execution, Execution.id == NodeExecution.execution_id)
+            .join(Workflow, Workflow.id == Execution.workflow_id)
+            .where(
+                NodeExecution.execution_id == execution_id,
+                NodeExecution.node_id == node_id,
+                Workflow.owner_api_key_id == owner_api_key_id,
+            )
+        )
+        result = await self.session.execute(stmt)
+        row = result.first()
+        if not row:
+            raise AppError("NodeExecution not found", code="not_found", status_code=404)
+
+        node_exec, execution = row
+
+        if node_exec.status != NodeExecutionStatus.DEAD_LETTERED:
+            raise AppError(
+                f"Cannot retry node in {node_exec.status.name} state. Must be DEAD_LETTERED.",
+                code="invalid_state",
+            )
+
+        # Transition the node status
+        await self.state_service.transition_node_status(
+            node_execution_id=node_exec.id,
+            from_status=NodeExecutionStatus.DEAD_LETTERED,
+            to_status=NodeExecutionStatus.QUEUED,
+        )
+
+        # Also resolve the DLQ job automatically if it exists and is unresolved
+        dlq_stmt = select(DeadLetterJob).where(
+            DeadLetterJob.node_execution_id == node_exec.id,
+            DeadLetterJob.resolved_at.is_(None)
+        )
+        dlq_result = await self.session.execute(dlq_stmt)
+        dlq_job = dlq_result.scalar_one_or_none()
+        if dlq_job:
+            dlq_job.resolved_at = datetime.now(UTC)
+            dlq_job.resolution_note = "Manually retried via API"
+
+        # Republish to queue
+        message_id = await self.queue_publisher.publish_node_execution(
+            execution_id=execution.id,
+            node_execution_id=node_exec.id,
+            workflow_version_id=execution.workflow_version_id,
+            node_id=node_exec.node_id,
+            attempt=node_exec.attempt,
+        )
+        if message_id:
+            node_exec.redis_message_id = message_id
+
+        await self.session.commit()
+        await flush_events(self.session)
+
+        return NodeExecutionDTO(
+            id=node_exec.id,
+            execution_id=node_exec.execution_id,
+            node_id=node_exec.node_id,
+            node_type=node_exec.node_type,
+            status=node_exec.status.name,
+            attempt=node_exec.attempt,
+            max_attempts=node_exec.max_attempts,
+            input_payload=node_exec.input_payload,
+            output_payload=node_exec.output_payload,
+            error_message=node_exec.error_message,
+        )
 
     async def transition_node(self, command: TransitionNodeCommand) -> NodeExecutionDTO:
         raise NotImplementedError("Not required for Phase 5")

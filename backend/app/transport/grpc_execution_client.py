@@ -95,6 +95,11 @@ class GrpcExecutionEngineClient:
         resp = await stub.TransitionNode(req)
         return self._map_node_execution(resp)
 
+    async def retry_node(
+        self, execution_id: UUID, node_id: str, owner_api_key_id: UUID
+    ) -> NodeExecutionDTO:
+        raise NotImplementedError("RetryNode gRPC stub not generated yet")
+
     def _map_execution(self, msg: pb.ExecutionDTO) -> ExecutionDTO:
         return ExecutionDTO(
             id=UUID(msg.id),

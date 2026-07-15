@@ -68,6 +68,20 @@ async def get_execution_nodes(
     return [NodeExecutionResponse.model_validate(n) for n in nodes]
 
 
+@router.post("/{execution_id}/nodes/{node_id}/retry", response_model=NodeExecutionResponse)
+async def retry_node_execution(
+    execution_id: uuid.UUID,
+    node_id: str,
+    owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
+    client: Annotated[ExecutionEngineClient, Depends(get_execution_engine_client)],
+) -> NodeExecutionResponse:
+    try:
+        node_dto = await client.retry_node(execution_id, node_id, owner_id)
+        return NodeExecutionResponse.model_validate(node_dto)
+    except AppError as e:
+        raise e
+
+
 @router.get("/{execution_id}/logs", response_model=list[ExecutionLogResponse])
 async def get_execution_logs(
     execution_id: uuid.UUID,
