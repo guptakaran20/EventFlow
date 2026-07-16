@@ -143,6 +143,22 @@ async def process_job(
         node_failed(session, node.execution_id, node.id, node.node_id, node.error_message)
         await _handle_node_failure(session, state_service, queue_publisher, execution, node)
 
+    # Check if the entire execution is complete
+    all_terminal = all(ne.status in TERMINAL_NODE_STATUSES for ne in all_node_execs)
+    if all_terminal and execution.status == ExecutionStatus.RUNNING:
+        final_status = ExecutionStatus.SUCCEEDED
+        if any(
+            ne.status in {NodeExecutionStatus.FAILED, NodeExecutionStatus.DEAD_LETTERED}
+            for ne in all_node_execs
+        ):
+            final_status = ExecutionStatus.FAILED
+            
+        await state_service.transition_execution_status(
+            execution_id=execution.id,
+            from_status=ExecutionStatus.RUNNING,
+            to_status=final_status,
+        )
+
     await session.commit()
     await flush_events(session)
 
@@ -309,8 +325,8 @@ async def run_worker(
                 block=block_ms,
             )
         except (TimeoutError, Exception) as e:
-            import redis
-            if isinstance(e, redis.exceptions.TimeoutError) or isinstance(e, TimeoutError):
+            import redis as redis_mod
+            if isinstance(e, redis_mod.exceptions.TimeoutError) or isinstance(e, TimeoutError):
                 continue
             raise
         if not response:

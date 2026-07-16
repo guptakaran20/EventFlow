@@ -32,9 +32,9 @@ export default function LoginPage() {
         const tl = gsap
           .timeline({ defaults: { ease: "power3.out" } })
           .from("[data-blueprint]", { opacity: 0, scale: 0.9, duration: 1.2 })
-          .from("[data-logo]", { opacity: 0, y: 12, scale: 0.8, duration: 0.6 }, "-=0.8")
-          .from("[data-title]", { opacity: 0, y: 14, duration: 0.5 }, "-=0.3")
-          .from("[data-sub]", { opacity: 0, y: 10, duration: 0.5 }, "-=0.35")
+          .fromTo("[data-logo]", { opacity: 0, y: 12, scale: 0.8 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, clearProps: "all" }, "-=0.8")
+          .fromTo("[data-title]", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, clearProps: "all" }, "-=0.3")
+          .fromTo("[data-sub]", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, clearProps: "all" }, "-=0.35")
           .fromTo("[data-field]", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, clearProps: "all" }, "-=0.25");
         if (strokes?.length) {
           tl.to(
@@ -55,17 +55,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      localStorage.setItem("eventflow_api_key", apiKey);
-      const isValid = await api.verifyAuth();
+      const isValid = await api.login(apiKey);
       if (isValid) {
         router.push("/dashboard");
       } else {
         setError("Invalid API key");
-        localStorage.removeItem("eventflow_api_key");
       }
     } catch (err: any) {
       setError(err.message || "Authentication failed");
-      localStorage.removeItem("eventflow_api_key");
     } finally {
       setLoading(false);
     }
@@ -90,7 +87,7 @@ export default function LoginPage() {
           <div data-logo className="flex justify-center mb-5">
             <Icons.Workflow className="w-8 h-8 text-foreground" />
           </div>
-          <Link href="/" data-title className="font-serif text-3xl tracking-tight hover:opacity-80 transition-opacity inline-block cursor-pointer">
+          <Link href="/" data-title className="font-serif text-3xl tracking-tight hover:opacity-80 inline-block cursor-pointer text-foreground">
             EventFlow
           </Link>
           <p data-sub className="text-foreground-muted mt-2 text-sm">

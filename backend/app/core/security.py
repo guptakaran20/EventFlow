@@ -1,10 +1,11 @@
 import uuid
+import jwt
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import APIKeyHeader
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -13,7 +14,7 @@ from app.db.session import get_db_session
 from app.services.api_key_service import APIKeyService
 
 _settings = get_settings()
-_api_key_scheme = APIKeyHeader(name=_settings.api_key_header_name, auto_error=False)
+_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
 @dataclass
@@ -23,17 +24,37 @@ class AuthenticatedPrincipal:
     api_key_id: uuid.UUID | None = None
 
 
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    to_encode = data.copy()
+    settings = get_settings()
+    if expires_delta:
+        expire = datetime.now(UTC) + expires_delta
+    else:
+        expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
+    to_encode.update({"exp": expire, "type": "access"})
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_access_secret_key, algorithm=settings.jwt_algorithm)
+    return encoded_jwt
+
+
+def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    to_encode = data.copy()
+    settings = get_settings()
+    if expires_delta:
+        expire = datetime.now(UTC) + expires_delta
+    else:
+        expire = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_refresh_secret_key, algorithm=settings.jwt_algorithm)
+    return encoded_jwt
+
+
 async def authenticate_api_key(
     api_key: str | None,
     db: AsyncSession,
 ) -> AuthenticatedPrincipal:
     """Validate a raw API key value against bootstrap and DB-backed keys.
 
-    Transport-agnostic core used by both the HTTP header dependency and the
-    WebSocket endpoint (which reads the key from the query string). Checks the
-    bootstrap key list first (no DB access) so local/dev setups and existing
-    tests keep working without a database, then falls back to hashed,
-    DB-backed keys (`APIKeyService`).
+    Used by the login endpoint to exchange a raw API key for a JWT.
     """
     if not api_key:
         raise AppError(
@@ -80,12 +101,37 @@ async def resolve_api_key_id(
     return principal.api_key_id
 
 
+async def get_current_principal_from_token(token: str | None) -> AuthenticatedPrincipal:
+    if not token:
+        raise AppError("Missing or invalid token", code="unauthorized", status_code=401)
+    
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.jwt_access_secret_key, algorithms=[settings.jwt_algorithm])
+        if payload.get("type") != "access":
+            raise AppError("Invalid token type", code="invalid_token", status_code=401)
+            
+        raw_key = payload.get("raw_key")
+        key_type = payload.get("key_type")
+        api_key_id_str = payload.get("api_key_id")
+        
+        if raw_key is None or key_type is None:
+            raise AppError("Invalid token payload", code="invalid_token", status_code=401)
+            
+        api_key_id = uuid.UUID(api_key_id_str) if api_key_id_str else None
+        return AuthenticatedPrincipal(raw_key=raw_key, key_type=key_type, api_key_id=api_key_id)
+        
+    except jwt.ExpiredSignatureError:
+        raise AppError("Token expired", code="token_expired", status_code=401)
+    except jwt.PyJWTError:
+        raise AppError("Invalid token", code="invalid_token", status_code=401)
+
+
 async def require_api_key(
-    api_key: Annotated[str | None, Depends(_api_key_scheme)],
-    db: Annotated[AsyncSession, Depends(get_db_session)],
+    token: Annotated[str | None, Depends(_oauth2_scheme)],
 ) -> AuthenticatedPrincipal:
-    """Validate the X-EventFlow-API-Key header. Returns an AuthenticatedPrincipal."""
-    return await authenticate_api_key(api_key, db)
+    """Validate the Bearer token. Returns an AuthenticatedPrincipal."""
+    return await get_current_principal_from_token(token)
 
 
 async def require_api_key_id(

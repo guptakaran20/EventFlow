@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     # is implemented in a later phase. Not for production use.
     bootstrap_api_keys: str = ""
 
+    # JWT Auth
+    jwt_access_secret_key: str = "development-super-secret-access-key"
+    jwt_refresh_secret_key: str = "development-super-secret-refresh-key"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60
+    jwt_refresh_token_expire_days: int = 7
+
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
 

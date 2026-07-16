@@ -25,6 +25,28 @@ const DEFAULT_WORKFLOW = {
   edges: []
 };
 
+const SCHEMA_TEMPLATE = `{
+  "name": "string (required)",
+  "description": "string (optional)",
+  "nodes": [
+    {
+      "id": "string (required, must be unique)",
+      "type": "string (required, e.g. 'http', 'condition')",
+      "name": "string (optional)",
+      "config": {
+        // Any node-specific configuration
+      }
+    }
+  ],
+  "edges": [ // Optional
+    {
+      "from": "string (required, matches a node id)",
+      "to": "string (required, matches a node id)",
+      "condition": "string (optional)"
+    }
+  ]
+}`;
+
 export default function WorkflowEditorPage() {
   const params = useParams();
   const router = useRouter();
@@ -34,6 +56,7 @@ export default function WorkflowEditorPage() {
   const [json, setJson] = useState(JSON.stringify(DEFAULT_WORKFLOW, null, 2));
   const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
   const [showHistory, setShowHistory] = useState(false);
+  const [showSchema, setShowSchema] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -195,18 +218,28 @@ export default function WorkflowEditorPage() {
                 JSON Code
               </button>
             </div>
-            <button
-              onClick={() => setShowHistory((v) => !v)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
-                showHistory
-                  ? "bg-surface text-foreground border-border"
-                  : "text-foreground-muted hover:text-foreground border-transparent"
-              }`}
-              title="Toggle version history"
-            >
-              <Icons.Code className="w-3.5 h-3.5" />
-              History
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSchema(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded border border-transparent text-foreground-muted hover:text-foreground transition-colors"
+                title="View Schema Reference"
+              >
+                <Icons.Activity className="w-3.5 h-3.5" />
+                Schema
+              </button>
+              <button
+                onClick={() => setShowHistory((v) => !v)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
+                  showHistory
+                    ? "bg-surface text-foreground border-border"
+                    : "text-foreground-muted hover:text-foreground border-transparent"
+                }`}
+                title="Toggle version history"
+              >
+                <Icons.Code className="w-3.5 h-3.5" />
+                History
+              </button>
+            </div>
           </div>
 
           {viewMode === "json" ? (
@@ -288,6 +321,34 @@ export default function WorkflowEditorPage() {
         </div>
         )}
       </div>
+      {/* Schema Modal */}
+      {showSchema && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div 
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm" 
+            onClick={() => setShowSchema(false)}
+          />
+          <div className="relative bg-surface border border-border shadow-2xl rounded-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-5 h-14 border-b border-border bg-surface-2 shrink-0">
+              <h2 className="font-serif text-xl text-foreground">Schema Reference</h2>
+              <button 
+                onClick={() => setShowSchema(false)}
+                className="text-foreground-muted hover:text-foreground transition-colors"
+              >
+                <Icons.Close className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 overflow-auto">
+              <p className="text-sm text-foreground-muted mb-4">
+                The JSON payload is validated against this structure. Notice that <code>name</code> and <code>nodes</code> are required.
+              </p>
+              <pre className="bg-surface-2 border border-border rounded p-4 overflow-x-auto text-[13px] font-mono leading-relaxed text-foreground-muted">
+                {SCHEMA_TEMPLATE}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

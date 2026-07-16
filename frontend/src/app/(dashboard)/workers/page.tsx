@@ -17,7 +17,7 @@ export default function WorkersPage() {
   });
 
   const root = usePageReveal<HTMLDivElement>();
-  const rowsKey = workers?.map((w) => w.id).join(",");
+  const rowsKey = workers?.map((w) => w.worker_id).join(",");
   const tbodyScope = useRowStagger<HTMLTableSectionElement>(rowsKey, "[data-row]");
 
   return (
@@ -49,7 +49,6 @@ export default function WorkersPage() {
           <thead>
             <tr>
               <Th>Hostname</Th>
-              <Th className="w-24">PID</Th>
               <Th className="w-40">Status</Th>
               <Th className="w-48">Last Heartbeat</Th>
               <Th>Current Job</Th>
@@ -57,13 +56,12 @@ export default function WorkersPage() {
           </thead>
           <tbody ref={tbodyScope} className="divide-y divide-border">
             {workers?.map((worker) => {
-              const lastHeartbeat = new Date(worker.last_heartbeat);
-              const isStale = Date.now() - lastHeartbeat.getTime() > 30000;
+              const lastHeartbeat = worker.last_heartbeat_at ? new Date(worker.last_heartbeat_at) : null;
+              const isStale = worker.heartbeat_age_seconds !== null && worker.heartbeat_age_seconds > 30;
 
               return (
-                <tr key={worker.id} data-row className="hover:bg-surface-hover transition-colors">
+                <tr key={worker.worker_id} data-row className="hover:bg-surface-hover transition-colors">
                   <td className="px-4 py-3 font-mono text-xs">{worker.hostname}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-foreground-muted">{worker.pid}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {isStale ? (
@@ -79,10 +77,10 @@ export default function WorkersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-foreground-muted font-mono">
-                    {formatDistanceToNow(lastHeartbeat, { addSuffix: true })}
+                    {lastHeartbeat ? formatDistanceToNow(lastHeartbeat, { addSuffix: true }) : "Never"}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-foreground truncate max-w-[200px]">
-                    {worker.current_node_id || "—"}
+                    {worker.current_job_id || "—"}
                   </td>
                 </tr>
               );

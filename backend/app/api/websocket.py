@@ -14,7 +14,7 @@ from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.errors import AppError
-from app.core.security import authenticate_api_key, resolve_api_key_id
+from app.core.security import get_current_principal_from_token, resolve_api_key_id
 from app.db.session import get_session_factory
 from app.models.execution import Execution
 from app.models.workflow import Workflow
@@ -26,12 +26,12 @@ logger = logging.getLogger("app.websocket.endpoint")
 router = APIRouter(prefix="/api/v1/ws", tags=["websocket"])
 
 
-async def _authorize(execution_id: uuid.UUID, api_key: str | None) -> bool:
-    """Return True when ``api_key`` is valid and owns ``execution_id``."""
+async def _authorize(execution_id: uuid.UUID, token: str | None) -> bool:
+    """Return True when ``token`` is valid and owns ``execution_id``."""
     session_factory = get_session_factory()
     async with session_factory() as session:
         try:
-            principal = await authenticate_api_key(api_key, session)
+            principal = await get_current_principal_from_token(token)
             owner_id = await resolve_api_key_id(principal, session)
         except AppError:
             return False
@@ -47,14 +47,19 @@ async def _authorize(execution_id: uuid.UUID, api_key: str | None) -> bool:
 
 @router.websocket("/executions/{execution_id}")
 async def execution_updates(websocket: WebSocket, execution_id: uuid.UUID) -> None:
-    api_key = websocket.query_params.get("api_key")
+    token = websocket.query_params.get("token")
 
-    if not await _authorize(execution_id, api_key):
+    if not await _authorize(execution_id, token):
         # 1008 = policy violation. Reject BEFORE accept for unauthorized clients.
         await websocket.close(code=1008)
         return
 
-    await websocket.accept()
+    try:
+        await websocket.accept()
+    except RuntimeError:
+        # Client likely disconnected before accept could complete (e.g. React Strict Mode)
+        return
+
     manager = get_connection_manager()
     execution_key = str(execution_id)
     await manager.connect(execution_key, websocket)

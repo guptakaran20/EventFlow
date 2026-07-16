@@ -36,9 +36,19 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const { data: me } = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () => api.me(),
+    retry: false,
+  });
+
   useEffect(() => {
-    setApiKey(localStorage.getItem("eventflow_api_key"));
-  }, []);
+    if (me?.raw_key) {
+      setApiKey(me.raw_key);
+    } else {
+      setApiKey(localStorage.getItem("eventflow_jwt")); // fallback to token or null while loading
+    }
+  }, [me]);
 
   // Backend reachability — piggyback on the metrics query the sidebar already runs
   const { isError, isSuccess, isLoading } = useQuery({
@@ -50,7 +60,8 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
   const online = isSuccess ? true : isError ? false : null;
 
   const handleLogout = () => {
-    localStorage.removeItem("eventflow_api_key");
+    localStorage.removeItem("eventflow_jwt");
+    localStorage.removeItem("eventflow_refresh");
     router.push("/login");
   };
 

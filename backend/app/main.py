@@ -9,9 +9,38 @@ from app.db.session import dispose_engine
 from app.queue.redis_client import close_redis
 
 
+import asyncio
+import json
+import logging
+from app.websocket.connection_manager import get_connection_manager
+
+async def _redis_pubsub_listener():
+    from app.queue.redis_client import get_redis
+    redis = get_redis()
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("eventflow:ws")
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    payload = json.loads(message["data"])
+                    await get_connection_manager().broadcast(payload["execution_id"], payload["message"])
+                except Exception:
+                    logging.getLogger("app.websocket").exception("Failed to process pubsub message")
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await pubsub.unsubscribe("eventflow:ws")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_redis_pubsub_listener())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
     await dispose_engine()
     await close_redis()
 
@@ -68,3 +97,5 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+# Force reload to pick up .env changes

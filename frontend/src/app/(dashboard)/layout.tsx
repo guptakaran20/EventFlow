@@ -18,7 +18,7 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem("eventflow_api_key")) {
+    if (!localStorage.getItem("eventflow_jwt")) {
       router.push("/login");
       return;
     }

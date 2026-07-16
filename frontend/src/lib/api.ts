@@ -8,11 +8,34 @@ export class ApiError extends Error {
 }
 
 function getAuthHeader() {
-  const apiKey = typeof window !== "undefined" ? localStorage.getItem("eventflow_api_key") : null;
-  if (!apiKey) {
-    throw new Error("No API key found in localStorage");
+  const token = typeof window !== "undefined" ? localStorage.getItem("eventflow_jwt") : null;
+  if (!token) {
+    throw new Error("No JWT token found in localStorage");
   }
-  return { "X-EventFlow-API-Key": apiKey };
+  return { "Authorization": `Bearer ${token}` };
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = typeof window !== "undefined" ? localStorage.getItem("eventflow_refresh") : null;
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem("eventflow_jwt", data.access_token);
+      localStorage.setItem("eventflow_refresh", data.refresh_token);
+      return data.access_token;
+    }
+  } catch (e) {
+    // Ignore refresh errors
+  }
+  return null;
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -22,10 +45,27 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ...(options.headers || {}),
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  let response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
+
+  // Auto-refresh token on 401
+  if (response.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } else {
+      // If refresh fails, log out
+      localStorage.removeItem("eventflow_jwt");
+      localStorage.removeItem("eventflow_refresh");
+      window.location.href = "/login";
+    }
+  }
 
   let data;
   try {
@@ -35,7 +75,25 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, data?.detail || response.statusText, data);
+    let errorMsg = response.statusText;
+    let details = data;
+
+    if (data?.error) {
+      errorMsg = data.error.message || errorMsg;
+      if (Array.isArray(data.error.details)) {
+        errorMsg += ": " + data.error.details.map((e: any) => `${e.loc?.join('.') || 'unknown'}: ${e.msg}`).join(', ');
+      }
+      details = data.error.details || data.error;
+    } else if (data?.detail) {
+      if (typeof data.detail === "string") {
+        errorMsg = data.detail;
+      } else if (Array.isArray(data.detail)) {
+        errorMsg = data.detail.map((e: any) => `${e.loc?.join('.') || 'unknown'}: ${e.msg}`).join(', ');
+      }
+      details = data.detail;
+    }
+
+    throw new ApiError(response.status, errorMsg, details);
   }
 
   return data as T;
@@ -49,14 +107,23 @@ export const api = {
     request<T>(endpoint, { ...options, method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { ...options, method: "DELETE" }),
   
-  // Custom non-v1 endpoint for verification
-  verifyAuth: async () => {
-    const apiKey = typeof window !== "undefined" ? localStorage.getItem("eventflow_api_key") : null;
-    const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace('/api/v1', '') + "/auth/verify";
-    
-    const response = await fetch(url, {
-      headers: { "X-EventFlow-API-Key": apiKey || "" }
+  // Authenticate and get JWT
+  login: async (apiKey: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: apiKey })
     });
-    return response.ok;
-  }
+    
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem("eventflow_jwt", data.access_token);
+      localStorage.setItem("eventflow_refresh", data.refresh_token);
+      return true;
+    }
+    return false;
+  },
+
+  // Get current user info
+  me: async () => request<{ raw_key: string; key_type: string }>("/auth/me")
 };

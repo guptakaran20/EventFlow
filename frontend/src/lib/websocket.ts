@@ -10,13 +10,13 @@ export function useExecutionWebSocket(executionId: string) {
   useEffect(() => {
     if (!executionId) return;
 
-    const apiKey = localStorage.getItem("eventflow_api_key");
-    if (!apiKey) return;
+    const token = localStorage.getItem("eventflow_jwt");
+    if (!token) return;
 
     // Use ws:// or wss:// based on current protocol
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = process.env.NEXT_PUBLIC_API_URL?.replace("http://", "").replace("https://", "")?.replace("/api/v1", "") || "localhost:8000";
-    const wsUrl = `${protocol}//${host}/api/v1/ws/executions/${executionId}?api_key=${apiKey}`;
+    const wsUrl = `${protocol}//${host}/api/v1/ws/executions/${executionId}?token=${token}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -33,29 +33,37 @@ export function useExecutionWebSocket(executionId: string) {
       try {
         const data = JSON.parse(event.data);
         
-        if (data.type === "execution.started" || data.type === "execution.completed" || data.type === "execution.failed") {
+        if (data.type === "execution_updated") {
           queryClient.setQueryData<ExecutionResponse>(["execution", executionId], (old) => {
             if (!old) return old;
-            return { ...old, status: data.payload.status };
+            return { ...old, status: data.data.status };
           });
         }
         
-        if (data.type === "node.queued" || data.type === "node.started" || data.type === "node.completed" || data.type === "node.failed" || data.type === "node.dead_lettered") {
+        if (data.type === "node_updated") {
           queryClient.setQueryData<ExecutionResponse>(["execution", executionId], (old) => {
             if (!old) return old;
             const updatedNodes = old.node_executions.map(node => 
-              node.node_id === data.payload.node_id 
-                ? { ...node, status: data.payload.status, attempt: data.payload.attempt || node.attempt } 
+              node.node_id === data.data.node_id 
+                ? { ...node, status: data.data.status, attempt: data.data.attempt || node.attempt } 
                 : node
             );
             return { ...old, node_executions: updatedNodes };
           });
         }
         
-        if (data.type === "log.appended") {
+        if (data.type === "execution_log") {
           queryClient.setQueryData<ExecutionLogResponse[]>(["execution_logs", executionId], (old) => {
-            if (!old) return [data.payload];
-            return [...old, data.payload];
+            // we need to construct a pseudo log response object
+            const logItem: ExecutionLogResponse = {
+              log_id: Math.random().toString(36).substring(7),
+              timestamp: data.timestamp,
+              level: data.data.level,
+              message: data.data.message,
+              metadata: data.data.metadata || null
+            };
+            if (!old) return [logItem];
+            return [...old, logItem];
           });
         }
       } catch (err) {

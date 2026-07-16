@@ -107,12 +107,11 @@ export type DeadLetterJobResponse = {
 };
 
 export type WorkerResponse = {
-  id: string;
+  worker_id: string;
   hostname: string;
-  pid: number;
   status: string;
-  last_heartbeat: string;
-  current_execution_id: string | null;
-  current_node_id: string | null;
-  created_at: string;
+  current_job_id: string | null;
+  started_at: string;
+  last_heartbeat_at: string | null;
+  heartbeat_age_seconds: number | null;
 };

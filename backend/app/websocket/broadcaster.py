@@ -39,7 +39,11 @@ async def flush_events(session: AsyncSession) -> None:
 
 async def _safe_broadcast(execution_id: uuid.UUID | str, message: dict[str, Any]) -> None:
     try:
-        await get_connection_manager().broadcast(str(execution_id), message)
+        import json
+        from app.queue.redis_client import get_redis
+        redis = get_redis()
+        payload = json.dumps({"execution_id": str(execution_id), "message": message})
+        await redis.publish("eventflow:ws", payload)
     except Exception:
         logger.exception("websocket broadcast failed for execution %s", execution_id)
 

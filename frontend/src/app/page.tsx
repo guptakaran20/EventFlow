@@ -66,7 +66,7 @@ export default function HomePage() {
   const router = useRouter();
 
   React.useEffect(() => {
-    if (localStorage.getItem("eventflow_api_key")) {
+    if (localStorage.getItem("eventflow_jwt")) {
       router.push("/dashboard");
     }
   }, [router]);
