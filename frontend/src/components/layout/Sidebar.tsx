@@ -200,9 +200,6 @@ export function Sidebar({
             />
             <span className={cn("whitespace-nowrap", collapsed && "md:hidden")}>Collapse</span>
           </button>
-          <div className={cn("label-caps px-3 py-1", collapsed && "md:hidden")}>
-            v0.1.0 — MVP
-          </div>
         </div>
       </aside>
     </>

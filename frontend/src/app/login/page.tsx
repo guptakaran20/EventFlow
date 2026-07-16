@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { api } from "@/lib/api";
@@ -34,7 +35,7 @@ export default function LoginPage() {
           .from("[data-logo]", { opacity: 0, y: 12, scale: 0.8, duration: 0.6 }, "-=0.8")
           .from("[data-title]", { opacity: 0, y: 14, duration: 0.5 }, "-=0.3")
           .from("[data-sub]", { opacity: 0, y: 10, duration: 0.5 }, "-=0.35")
-          .from("[data-field]", { opacity: 0, y: 12, duration: 0.5, stagger: 0.1 }, "-=0.25");
+          .fromTo("[data-field]", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, clearProps: "all" }, "-=0.25");
         if (strokes?.length) {
           tl.to(
             strokes,
@@ -45,7 +46,7 @@ export default function LoginPage() {
       });
       return () => mm.revert();
     },
-    { scope: root }
+    { scope: root, dependencies: [] }
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,7 +90,9 @@ export default function LoginPage() {
           <div data-logo className="flex justify-center mb-5">
             <Icons.Workflow className="w-8 h-8 text-foreground" />
           </div>
-          <h1 data-title className="font-serif text-3xl tracking-tight">EventFlow</h1>
+          <Link href="/" data-title className="font-serif text-3xl tracking-tight hover:opacity-80 transition-opacity inline-block cursor-pointer">
+            EventFlow
+          </Link>
           <p data-sub className="text-foreground-muted mt-2 text-sm">
             Enter your API key to connect
           </p>
@@ -122,9 +125,9 @@ export default function LoginPage() {
             type="submit"
             disabled={loading || !apiKey}
             data-field
-            className="w-full bg-inverse text-inverse-foreground px-4 h-11 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full bg-inverse text-inverse-foreground px-4 h-11 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer mt-6"
           >
-            {loading ? "Authenticating…" : "Connect"}
+            {loading ? "Authenticating…" : "Proceed to Dashboard"}
           </button>
         </form>
       </div>

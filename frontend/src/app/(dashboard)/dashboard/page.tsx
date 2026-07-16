@@ -170,7 +170,7 @@ export default function DashboardPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2 text-xs text-foreground-muted font-mono border border-border bg-surface px-3 h-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-foreground animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           Live · refreshing 5s
         </div>
       </div>

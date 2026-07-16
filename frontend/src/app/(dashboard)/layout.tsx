@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 
+import { useRouter } from "next/navigation";
+
 const COLLAPSE_KEY = "eventflow_sidebar_collapsed";
 
 export default function DashboardLayout({
@@ -11,12 +13,17 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
+    if (!localStorage.getItem("eventflow_api_key")) {
+      router.push("/login");
+      return;
+    }
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
-  }, []);
+  }, [router]);
 
   const toggleCollapse = () => {
     setCollapsed((prev) => {

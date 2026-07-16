@@ -104,11 +104,11 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
               online === false
                 ? "bg-danger"
                 : online
-                ? "bg-foreground animate-pulse"
-                : "bg-foreground-faint"
+                  ? "bg-green-500 animate-pulse"
+                  : "bg-foreground-faint"
             )}
           />
-          {online === false ? "Offline" : online ? "Live · 5s" : "…"}
+          {online === false ? "Offline" : online ? "Live" : "…"}
         </div>
 
         <ThemeToggle />

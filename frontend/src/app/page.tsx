@@ -59,8 +59,17 @@ const CONCEPTS: [string, string][] = [
 
 const STACK = ["FastAPI", "PostgreSQL", "Redis Streams", "WebSocket", "gRPC", "Docker"];
 
+import { useRouter } from "next/navigation";
+
 export default function HomePage() {
   const root = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (localStorage.getItem("eventflow_api_key")) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   useGSAP(
     () => {
@@ -171,19 +180,7 @@ export default function HomePage() {
             >
               Connect Instance
             </Link>
-            <a
-              href="https://github.com/guptakaran20/EventFlow"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hero-cta inline-flex items-center justify-center h-11 px-6 bg-surface border border-border-strong text-foreground text-sm font-medium hover:bg-surface-hover transition-colors"
-            >
-              View Source
-            </a>
-          </div>
-          <div className="hero-meta mt-14 flex flex-wrap items-center gap-x-6 gap-y-2 label-caps">
-            {STACK.map((s) => (
-              <span key={s}>{s}</span>
-            ))}
+
           </div>
         </div>
 
@@ -333,7 +330,6 @@ export default function HomePage() {
           <div className="flex items-center gap-2.5">
             <Icons.Workflow className="w-4 h-4" />
             <span className="font-serif tracking-tight">EventFlow</span>
-            <span className="label-caps ml-2">v0.1.0 — MVP</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-foreground-muted">
             <a href="https://github.com/guptakaran20/EventFlow" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>

@@ -34,6 +34,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${newsreader.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <script

@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     # is implemented in a later phase. Not for production use.
     bootstrap_api_keys: str = ""
 
+    # CORS
+    cors_origins: str = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
     @property
     def bootstrap_api_keys_list(self) -> list[str]:
         return [key.strip() for key in self.bootstrap_api_keys.split(",") if key.strip()]
