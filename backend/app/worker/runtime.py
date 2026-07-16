@@ -300,13 +300,19 @@ async def run_worker(
     stop = stop_event or asyncio.Event()
 
     while not stop.is_set():
-        response = await redis.xreadgroup(
-            groupname=consumer_group,
-            consumername=consumer_name,
-            streams={stream_name: ">"},
-            count=poll_count,
-            block=block_ms,
-        )
+        try:
+            response = await redis.xreadgroup(
+                groupname=consumer_group,
+                consumername=consumer_name,
+                streams={stream_name: ">"},
+                count=poll_count,
+                block=block_ms,
+            )
+        except (TimeoutError, Exception) as e:
+            import redis
+            if isinstance(e, redis.exceptions.TimeoutError) or isinstance(e, TimeoutError):
+                continue
+            raise
         if not response:
             continue
 
