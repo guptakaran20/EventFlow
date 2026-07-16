@@ -8,23 +8,20 @@ import { WorkflowDetailResponse } from "@/lib/types";
 import { Icons } from "@/components/icons";
 import { Button, PageHeader } from "@/components/ui";
 import { format } from "date-fns";
+import { ReactFlowEditor } from "@/components/workflows/ReactFlowEditor";
 
 const DEFAULT_WORKFLOW = {
   name: "New Workflow",
   description: "A description of your workflow",
-  definition: {
-    name: "New Workflow",
-    description: "A description of your workflow",
-    nodes: [
-      {
-        id: "node_1",
-        type: "http",
-        name: "Fetch Data",
-        config: { url: "https://api.example.com", method: "GET" }
-      }
-    ],
-    edges: []
-  }
+  nodes: [
+    {
+      id: "node_1",
+      type: "http",
+      name: "Fetch Data",
+      config: { url: "https://api.example.com", method: "GET" }
+    }
+  ],
+  edges: []
 };
 
 export default function WorkflowEditorPage() {
@@ -34,6 +31,7 @@ export default function WorkflowEditorPage() {
   const isNew = params.id === "new";
 
   const [json, setJson] = useState(JSON.stringify(DEFAULT_WORKFLOW, null, 2));
+  const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -63,9 +61,13 @@ export default function WorkflowEditorPage() {
   const saveMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (isNew) {
-        return api.post<WorkflowDetailResponse>("/workflows", payload);
+        return api.post<WorkflowDetailResponse>("/workflows", {
+          name: payload.name,
+          description: payload.description,
+          definition: payload
+        });
       } else {
-        return api.post<any>(`/workflows/${params.id}/versions`, { definition: payload.definition });
+        return api.post<any>(`/workflows/${params.id}/versions`, { definition: payload });
       }
     },
     onSuccess: (data) => {
@@ -163,18 +165,65 @@ export default function WorkflowEditorPage() {
       )}
 
       <div className="mt-6 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
-        {/* JSON editor */}
         <div className="lg:col-span-3 border border-border bg-surface flex flex-col min-h-0">
           <div className="bg-surface-2 border-b border-border px-4 h-11 flex items-center justify-between shrink-0">
-            <span className="font-mono text-xs text-foreground-muted">workflow.json</span>
-            <Icons.Code className="w-4 h-4 text-foreground-faint" />
+            <div className="flex gap-1">
+              <button
+                onClick={() => setViewMode("visual")}
+                className={`px-3 py-1 text-xs font-medium rounded ${
+                  viewMode === "visual"
+                    ? "bg-surface text-foreground shadow-sm border border-border"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                Visual Editor
+              </button>
+              <button
+                onClick={() => setViewMode("json")}
+                className={`px-3 py-1 text-xs font-medium rounded ${
+                  viewMode === "json"
+                    ? "bg-surface text-foreground shadow-sm border border-border"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                JSON Code
+              </button>
+            </div>
+            {viewMode === "json" ? (
+              <Icons.Code className="w-4 h-4 text-foreground-faint" />
+            ) : (
+              <Icons.Workflow className="w-4 h-4 text-foreground-faint" />
+            )}
           </div>
-          <textarea
-            value={json}
-            onChange={(e) => setJson(e.target.value)}
-            className="flex-1 w-full bg-transparent p-4 font-mono text-[13px] focus:outline-none resize-none leading-relaxed text-foreground"
-            spellCheck={false}
-          />
+          
+          {viewMode === "json" ? (
+            <textarea
+              value={json}
+              onChange={(e) => setJson(e.target.value)}
+              className="flex-1 w-full bg-transparent p-4 font-mono text-[13px] focus:outline-none resize-none leading-relaxed text-foreground"
+              spellCheck={false}
+            />
+          ) : (
+            <div className="flex-1 w-full h-full relative">
+              {(() => {
+                try {
+                  const parsed = JSON.parse(json);
+                  return (
+                    <ReactFlowEditor
+                      workflow={parsed}
+                      onChange={(wf) => setJson(JSON.stringify(wf, null, 2))}
+                    />
+                  );
+                } catch (e) {
+                  return (
+                    <div className="p-4 text-danger text-sm">
+                      Invalid JSON. Please fix it in the JSON Code view before using the visual editor.
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          )}
         </div>
 
         {/* Version history — git-style */}

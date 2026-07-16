@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
+
+const COLLAPSE_KEY = "eventflow_sidebar_collapsed";
 
 export default function DashboardLayout({
   children,
@@ -10,10 +12,28 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+  }, []);
+
+  const toggleCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+      return next;
+    });
+  };
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
+      <Sidebar
+        open={navOpen}
+        onClose={() => setNavOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapse}
+      />
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar onMenu={() => setNavOpen(true)} />
         <main className="flex-1 overflow-auto bg-background">
