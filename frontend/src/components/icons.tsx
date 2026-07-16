@@ -13,13 +13,13 @@ export const StatusIcon = ({
   if (s === "RUNNING") {
     // animated rotating ring
     return (
-      <svg className={`${sizeClass} animate-spin text-brand ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <svg className={`${sizeClass} animate-spin text-foreground ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
         <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
       </svg>
     );
   }
-  
+
   if (s === "SUCCEEDED" || s === "COMPLETED") {
     // solid square
     return (
@@ -28,20 +28,20 @@ export const StatusIcon = ({
       </svg>
     );
   }
-  
+
   if (s === "FAILED" || s === "PARTIAL_FAILED") {
-    // broken diamond
+    // broken diamond — danger
     return (
-      <svg className={`${sizeClass} text-foreground ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="miter">
+      <svg className={`${sizeClass} text-danger ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="miter">
         <path d="M12 2L2 12L12 22L17 17M22 12L17 7" strokeLinecap="square" />
       </svg>
     );
   }
-  
+
   if (s === "RETRYING") {
     // double circle
     return (
-      <svg className={`${sizeClass} text-brand ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg className={`${sizeClass} text-foreground ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="10" />
         <circle cx="12" cy="12" r="5" />
       </svg>
@@ -58,9 +58,9 @@ export const StatusIcon = ({
   }
   
   if (s === "DEAD_LETTERED") {
-    // broken square (heavy)
+    // broken square (heavy) — danger
     return (
-      <svg className={`${sizeClass} text-foreground ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <svg className={`${sizeClass} text-danger ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         <path d="M5 5h14v14H5z" strokeDasharray="4 4" />
       </svg>
     );
@@ -150,6 +150,31 @@ export const Icons = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" {...props}>
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  ),
+  Menu: (props: any) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" {...props}>
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  ),
+  Sun: (props: any) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" {...props}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
+    </svg>
+  ),
+  Moon: (props: any) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" {...props}>
+      <path d="M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z" />
+    </svg>
+  ),
+  Monitor: (props: any) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" {...props}>
+      <rect x="2" y="4" width="20" height="13" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
     </svg>
   ),
 };

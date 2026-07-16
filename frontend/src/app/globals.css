@@ -1,46 +1,111 @@
 @import "tailwindcss";
 
-@theme {
-  --color-brand: var(--brand);
-  --color-brand-hover: var(--brand-hover);
+@theme inline {
+  /* Surfaces */
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-surface-hover: var(--surface-hover);
-  --color-border: var(--border);
+
+  /* Ink (warm-gray text ramp) */
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
-  
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-roboto-mono), ui-monospace, SFMono-Regular, monospace;
+  --color-foreground-faint: var(--foreground-faint);
+
+  /* Lines */
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  /* Inverse (primary action fills — Claude-style) */
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
+
+  /* Single reserved semantic: destructive/error only */
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
-  /* Light Mode (Warm white, light gray, graphite text) */
-  --background: #fbfaf9;
+  /* Light — warm paper + graphite ink (Claude/Notion). Default theme. */
+  --background: #faf9f7;
   --surface: #ffffff;
-  --surface-hover: #f3f1ec;
-  --border: #e6e4df;
-  --foreground: #2d2d2d;
-  --foreground-muted: #6b6a68;
-  
-  /* Accent: Deep Blue */
-  --brand: #0b4a99;
-  --brand-hover: #083c7a;
+  --surface-2: #f5f3f0;
+  --surface-hover: #f0eeea;
+
+  --foreground: #292724;
+  --foreground-muted: #6f6b64;
+  --foreground-faint: #97928a;
+
+  --border: #e8e5e0;
+  --border-strong: #d6d2cb;
+
+  --inverse: #292724;
+  --inverse-foreground: #faf9f7;
+
+  --danger: #a8352c;
+  --danger-soft: #fbf1ef;
+  --danger-border: #e9c9c4;
+
+  --focus-ring: #292724;
+
+  color-scheme: light;
+}
+
+/* Dark token set — shared by explicit opt-in and (when not forced light) system preference */
+:root[data-theme="dark"] {
+  --background: #1a1917;
+  --surface: #21201d;
+  --surface-2: #26251f;
+  --surface-hover: #2c2a26;
+
+  --foreground: #ece9e3;
+  --foreground-muted: #a6a29a;
+  --foreground-faint: #77736c;
+
+  --border: #322f2a;
+  --border-strong: #403c36;
+
+  --inverse: #ece9e3;
+  --inverse-foreground: #1a1917;
+
+  --danger: #e5867b;
+  --danger-soft: #2a1e1c;
+  --danger-border: #4a322e;
+
+  --focus-ring: #ece9e3;
+
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark Mode (Deep charcoal, warm black, soft gray, white text) */
-    --background: #111110;
-    --surface: #1a1a19;
-    --surface-hover: #242422;
-    --border: #2d2d2c;
-    --foreground: #f4f4f4;
-    --foreground-muted: #a1a1a0;
-    
-    /* Accent: Deep Blue */
-    --brand: #2b70c9;
-    --brand-hover: #3b82df;
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --background: #1a1917;
+    --surface: #21201d;
+    --surface-2: #26251f;
+    --surface-hover: #2c2a26;
+
+    --foreground: #ece9e3;
+    --foreground-muted: #a6a29a;
+    --foreground-faint: #77736c;
+
+    --border: #322f2a;
+    --border-strong: #403c36;
+
+    --inverse: #ece9e3;
+    --inverse-foreground: #1a1917;
+
+    --danger: #e5867b;
+    --danger-soft: #2a1e1c;
+    --danger-border: #4a322e;
+
+    --focus-ring: #ece9e3;
+
+    color-scheme: dark;
   }
 }
 
@@ -50,9 +115,32 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern", "liga", "calt";
+  text-rendering: optimizeLegibility;
 }
 
-/* Subtle, refined scrollbars */
+/* Serif display */
+.font-serif {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+/* Uppercase micro-label */
+.label-caps {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--foreground-faint);
+}
+
+/* Focus — monochrome ring, always visible for keyboard nav */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Thin, calm scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -61,9 +149,21 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--border-strong);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--foreground-muted);
+  background: var(--foreground-faint);
+}
+
+/* Refined motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

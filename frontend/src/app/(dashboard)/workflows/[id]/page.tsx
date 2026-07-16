@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { WorkflowDetailResponse } from "@/lib/types";
 import { Icons } from "@/components/icons";
+import { Button, PageHeader } from "@/components/ui";
+import { format } from "date-fns";
 
 const DEFAULT_WORKFLOW = {
   name: "New Workflow",
@@ -109,67 +111,111 @@ export default function WorkflowEditorPage() {
   };
 
   if (isLoading && !isNew) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 w-48 bg-surface border border-border" />
+        <div className="h-96 bg-surface border border-border" />
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-medium tracking-tight">
-            {isNew ? "Create Workflow" : workflow?.name}
-          </h2>
-          <div className="text-sm text-foreground-muted mt-1 font-mono">
-            {isNew ? "Unsaved" : `ID: ${workflow?.id} | Latest Version: v${workflow?.versions.length}`}
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="bg-surface hover:bg-surface-hover border border-border text-foreground px-4 py-2 text-sm font-medium transition-colors"
-          >
-            {saveMutation.isPending ? "Saving..." : "Save JSON"}
-          </button>
-          
-          {!isNew && (
-            <button 
-              onClick={handleStart}
-              disabled={startExecutionMutation.isPending}
-              className="bg-brand hover:bg-brand-hover text-white px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2"
-            >
-              <Icons.Play className="w-4 h-4 fill-current" />
-              {startExecutionMutation.isPending ? "Starting..." : "Start Execution"}
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="flex flex-col h-[calc(100vh-9rem)]">
+      <PageHeader
+        title={isNew ? "Create Workflow" : workflow?.name || "Workflow"}
+        description={
+          isNew
+            ? "Define nodes and edges as JSON, then save the first version."
+            : `${workflow?.versions.length ?? 0} version${
+                workflow?.versions.length === 1 ? "" : "s"
+              } · ID ${workflow?.id?.slice(0, 8)}…`
+        }
+        actions={
+          <>
+            <Button onClick={handleSave} disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? "Saving…" : "Save Version"}
+            </Button>
+            {!isNew && (
+              <Button
+                variant="primary"
+                onClick={handleStart}
+                disabled={startExecutionMutation.isPending}
+              >
+                <Icons.Play className="w-3.5 h-3.5 fill-current" />
+                {startExecutionMutation.isPending ? "Starting…" : "Run"}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {validationError && (
-        <div className="mb-6 p-4 bg-red-500/5 border border-red-500/20 text-red-500 text-sm flex items-center gap-2">
+        <div className="mt-6 p-4 bg-danger-soft border border-danger-border text-danger text-sm flex items-center gap-2">
           <Icons.Close className="w-4 h-4 shrink-0" />
           {validationError}
         </div>
       )}
-
       {successMsg && (
-        <div className="mb-6 p-4 bg-brand/5 border border-brand/20 text-brand text-sm flex items-center gap-2">
+        <div className="mt-6 p-4 bg-surface-2 border border-border text-foreground text-sm flex items-center gap-2">
           <Icons.Workflow className="w-4 h-4 shrink-0" />
           {successMsg}
         </div>
       )}
 
-      <div className="flex-1 border border-border bg-background relative flex flex-col">
-        <div className="bg-surface border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
-          <span className="text-sm font-medium text-foreground-muted">workflow.json</span>
-          <Icons.Code className="w-4 h-4 text-foreground-muted" />
+      <div className="mt-6 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
+        {/* JSON editor */}
+        <div className="lg:col-span-3 border border-border bg-surface flex flex-col min-h-0">
+          <div className="bg-surface-2 border-b border-border px-4 h-11 flex items-center justify-between shrink-0">
+            <span className="font-mono text-xs text-foreground-muted">workflow.json</span>
+            <Icons.Code className="w-4 h-4 text-foreground-faint" />
+          </div>
+          <textarea
+            value={json}
+            onChange={(e) => setJson(e.target.value)}
+            className="flex-1 w-full bg-transparent p-4 font-mono text-[13px] focus:outline-none resize-none leading-relaxed text-foreground"
+            spellCheck={false}
+          />
         </div>
-        <textarea
-          value={json}
-          onChange={(e) => setJson(e.target.value)}
-          className="flex-1 w-full bg-transparent p-4 font-mono text-sm focus:outline-none resize-none leading-relaxed"
-          spellCheck={false}
-        />
+
+        {/* Version history — git-style */}
+        <div className="border border-border bg-surface flex flex-col min-h-0">
+          <div className="bg-surface-2 border-b border-border px-4 h-11 flex items-center shrink-0">
+            <span className="label-caps">Version History</span>
+          </div>
+          <div className="flex-1 overflow-auto p-2">
+            {isNew || !workflow?.versions.length ? (
+              <div className="text-xs text-foreground-faint p-3">
+                No versions yet.
+              </div>
+            ) : (
+              <ol className="relative">
+                {[...workflow.versions]
+                  .sort((a, b) => b.version_number - a.version_number)
+                  .map((ver, i, arr) => (
+                    <li key={ver.id} className="flex gap-3 px-2 py-2">
+                      <div className="flex flex-col items-center pt-1">
+                        <span className="w-2 h-2 bg-foreground shrink-0" />
+                        {i < arr.length - 1 && (
+                          <span className="w-px flex-1 bg-border mt-1" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-mono text-xs text-foreground">
+                          v{ver.version_number}
+                        </div>
+                        <div className="text-[11px] text-foreground-faint font-mono truncate">
+                          {ver.checksum?.slice(0, 10)}
+                        </div>
+                        <div className="text-[11px] text-foreground-muted mt-0.5">
+                          {format(new Date(ver.created_at), "MMM d · HH:mm")}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+              </ol>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Icons } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme";
 
 export default function LoginPage() {
   const [apiKey, setApiKey] = useState("");
@@ -35,8 +36,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background illustration hints */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center">
+      <div className="absolute top-5 right-5 z-20">
+        <ThemeToggle />
+      </div>
+      {/* Faint blueprint */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.04] flex items-center justify-center text-foreground">
         <svg viewBox="0 0 800 800" className="w-full max-w-4xl h-auto" stroke="currentColor" fill="none">
           <circle cx="400" cy="400" r="300" strokeWidth="1" strokeDasharray="4 4" />
           <circle cx="400" cy="400" r="200" strokeWidth="1" />
@@ -46,16 +50,18 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm z-10">
         <div className="mb-12 text-center">
-          <div className="flex justify-center mb-6">
-            <Icons.Workflow className="w-10 h-10 text-brand" />
+          <div className="flex justify-center mb-5">
+            <Icons.Workflow className="w-8 h-8 text-foreground" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">EventFlow</h1>
-          <p className="text-foreground-muted mt-2 text-sm">Orchestration Engine</p>
+          <h1 className="font-serif text-3xl tracking-tight">EventFlow</h1>
+          <p className="text-foreground-muted mt-2 text-sm">
+            Enter your API key to connect
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label htmlFor="apiKey" className="text-sm font-medium text-foreground-muted">
+            <label htmlFor="apiKey" className="label-caps block">
               API Key
             </label>
             <input
@@ -63,14 +69,14 @@ export default function LoginPage() {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              className="w-full bg-surface border border-border px-4 py-2 text-sm focus:outline-none focus:border-brand transition-colors font-mono"
+              className="w-full bg-surface border border-border-strong px-4 h-11 text-sm focus:outline-none focus:border-foreground transition-colors font-mono"
               placeholder="ef_..."
               required
             />
           </div>
 
           {error && (
-            <div className="text-sm text-red-500 border border-red-500/20 bg-red-500/5 px-4 py-2 flex items-center gap-2">
+            <div className="text-sm text-danger border border-danger-border bg-danger-soft px-4 py-2.5 flex items-center gap-2">
               <Icons.Close className="w-4 h-4 shrink-0" />
               {error}
             </div>
@@ -79,9 +85,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !apiKey}
-            className="w-full bg-brand hover:bg-brand-hover text-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-inverse text-inverse-foreground px-4 h-11 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            {loading ? "Authenticating..." : "Connect"}
+            {loading ? "Authenticating…" : "Connect"}
           </button>
         </form>
       </div>

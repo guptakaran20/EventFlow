@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { WorkerResponse } from "@/lib/types";
 import { Icons, StatusIcon } from "@/components/icons";
+import { PageHeader, Table, Th, EmptyState } from "@/components/ui";
 import { formatDistanceToNow } from "date-fns";
 
 export default function WorkersPage() {
@@ -15,75 +16,72 @@ export default function WorkersPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-medium tracking-tight">Workers</h2>
-          <p className="text-sm text-foreground-muted mt-1">Active instances executing workflow nodes.</p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Workers"
+        description="Distributed worker instances consuming and executing workflow nodes."
+      />
 
       {error ? (
-        <div className="p-4 bg-red-500/5 border border-red-500/20 text-red-500 text-sm">
+        <div className="p-4 bg-danger-soft border border-danger-border text-danger text-sm">
           Failed to load workers: {(error as Error).message}
         </div>
       ) : isLoading ? (
-        <div className="animate-pulse space-y-4">
-          <div className="h-10 bg-surface border border-border"></div>
-          <div className="h-10 bg-surface border border-border"></div>
+        <div className="animate-pulse space-y-3">
+          <div className="h-11 bg-surface border border-border" />
+          <div className="h-11 bg-surface border border-border" />
         </div>
       ) : workers?.length === 0 ? (
-        <div className="border border-border bg-surface p-12 text-center text-foreground-muted">
-          <Icons.Server className="w-10 h-10 mx-auto opacity-20 mb-4" />
-          No active workers connected.
-        </div>
+        <EmptyState
+          icon={<Icons.Server className="w-10 h-10" />}
+          title="No active workers"
+          description="Start a worker process to begin consuming jobs from the queue."
+        />
       ) : (
-        <div className="border border-border bg-surface">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border bg-background">
-              <tr>
-                <th className="px-4 py-3 font-medium text-foreground-muted">Hostname</th>
-                <th className="px-4 py-3 font-medium text-foreground-muted">PID</th>
-                <th className="px-4 py-3 font-medium text-foreground-muted">Status</th>
-                <th className="px-4 py-3 font-medium text-foreground-muted">Last Heartbeat</th>
-                <th className="px-4 py-3 font-medium text-foreground-muted">Current Job</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {workers?.map((worker) => {
-                const lastHeartbeat = new Date(worker.last_heartbeat);
-                const isStale = (Date.now() - lastHeartbeat.getTime()) > 30000;
+        <Table>
+          <thead>
+            <tr>
+              <Th>Hostname</Th>
+              <Th className="w-24">PID</Th>
+              <Th className="w-40">Status</Th>
+              <Th className="w-48">Last Heartbeat</Th>
+              <Th>Current Job</Th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {workers?.map((worker) => {
+              const lastHeartbeat = new Date(worker.last_heartbeat);
+              const isStale = Date.now() - lastHeartbeat.getTime() > 30000;
 
-                return (
-                  <tr key={worker.id} className="hover:bg-surface-hover transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs">{worker.hostname}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-foreground-muted">{worker.pid}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {worker.status === "IDLE" && !isStale && (
-                          <StatusIcon status="COMPLETED" className="w-4 h-4 !text-foreground-muted" />
-                        )}
-                        {worker.status === "BUSY" && !isStale && (
-                          <StatusIcon status="RUNNING" className="w-4 h-4" />
-                        )}
-                        {isStale && (
-                          <StatusIcon status="FAILED" className="w-4 h-4 !text-red-500" />
-                        )}
-                        <span className="text-xs">{isStale ? "STALE" : worker.status}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-foreground-muted">
-                      {formatDistanceToNow(lastHeartbeat, { addSuffix: true })}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-brand truncate max-w-[200px]">
-                      {worker.current_node_id || "-"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+              return (
+                <tr key={worker.id} className="hover:bg-surface-hover transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs">{worker.hostname}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-foreground-muted">{worker.pid}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {isStale ? (
+                        <StatusIcon status="FAILED" className="w-4 h-4" />
+                      ) : worker.status === "BUSY" ? (
+                        <StatusIcon status="RUNNING" className="w-4 h-4" />
+                      ) : (
+                        <StatusIcon status="QUEUED" className="w-4 h-4" />
+                      )}
+                      <span className={`text-xs ${isStale ? "text-danger font-medium" : ""}`}>
+                        {isStale ? "STALE" : worker.status}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-foreground-muted font-mono">
+                    {formatDistanceToNow(lastHeartbeat, { addSuffix: true })}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-foreground truncate max-w-[200px]">
+                    {worker.current_node_id || "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
       )}
     </div>
   );

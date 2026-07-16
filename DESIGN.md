@@ -1,73 +1,56 @@
 ---
-name: Precision Kinetic
+name: EventFlow — Monochrome Editorial
 colors:
-  surface: '#131313'
-  surface-dim: '#131313'
-  surface-bright: '#3a3939'
-  surface-container-lowest: '#0e0e0e'
-  surface-container-low: '#1c1b1b'
-  surface-container: '#201f1f'
-  surface-container-high: '#2a2a2a'
-  surface-container-highest: '#353534'
-  on-surface: '#e5e2e1'
-  on-surface-variant: '#c7c4d8'
-  inverse-surface: '#e5e2e1'
-  inverse-on-surface: '#313030'
-  outline: '#918fa1'
-  outline-variant: '#464555'
-  surface-tint: '#c3c0ff'
-  primary: '#c3c0ff'
-  on-primary: '#1d00a5'
-  primary-container: '#4f46e5'
-  on-primary-container: '#dad7ff'
-  inverse-primary: '#4d44e3'
-  secondary: '#bad061'
-  on-secondary: '#2b3400'
-  secondary-container: '#5d7001'
-  on-secondary-container: '#dcf37e'
-  tertiary: '#ffb4a5'
-  on-tertiary: '#5b1a0e'
-  tertiary-container: '#994838'
-  on-tertiary-container: '#ffd1c8'
-  error: '#ffb4ab'
-  on-error: '#690005'
-  error-container: '#93000a'
-  on-error-container: '#ffdad6'
-  primary-fixed: '#e2dfff'
-  primary-fixed-dim: '#c3c0ff'
-  on-primary-fixed: '#0f0069'
-  on-primary-fixed-variant: '#3323cc'
-  secondary-fixed: '#d6ed79'
-  secondary-fixed-dim: '#bad061'
-  on-secondary-fixed: '#181e00'
-  on-secondary-fixed-variant: '#3f4c00'
-  tertiary-fixed: '#ffdad3'
-  tertiary-fixed-dim: '#ffb4a5'
-  on-tertiary-fixed: '#3e0500'
-  on-tertiary-fixed-variant: '#793021'
-  background: '#131313'
-  on-background: '#e5e2e1'
-  surface-variant: '#353534'
+  # Light (warm paper + graphite ink)
+  light-background: '#faf9f7'
+  light-surface: '#ffffff'
+  light-surface-2: '#f5f3f0'
+  light-surface-hover: '#f0eeea'
+  light-foreground: '#292724'
+  light-foreground-muted: '#6f6b64'
+  light-foreground-faint: '#97928a'
+  light-border: '#e8e5e0'
+  light-border-strong: '#d6d2cb'
+  light-inverse: '#292724'
+  light-inverse-foreground: '#faf9f7'
+  light-danger: '#a8352c'
+  light-danger-soft: '#fbf1ef'
+  light-danger-border: '#e9c9c4'
+  # Dark (warm charcoal + soft off-white ink)
+  dark-background: '#1a1917'
+  dark-surface: '#21201d'
+  dark-surface-2: '#26251f'
+  dark-surface-hover: '#2c2a26'
+  dark-foreground: '#ece9e3'
+  dark-foreground-muted: '#a6a29a'
+  dark-foreground-faint: '#77736c'
+  dark-border: '#322f2a'
+  dark-border-strong: '#403c36'
+  dark-inverse: '#ece9e3'
+  dark-inverse-foreground: '#1a1917'
+  dark-danger: '#e5867b'
+  dark-danger-soft: '#2a1e1c'
+  dark-danger-border: '#4a322e'
 typography:
   display-lg:
-    fontFamily: Geist
-    fontSize: 48px
-    fontWeight: '700'
-    lineHeight: '1.1'
-    letterSpacing: -0.04em
+    fontFamily: Newsreader
+    fontSize: 54px
+    fontWeight: '400'
+    lineHeight: '1.05'
+    letterSpacing: -0.01em
   headline-lg:
-    fontFamily: Geist
-    fontSize: 32px
-    fontWeight: '600'
-    lineHeight: '1.2'
-    letterSpacing: -0.02em
+    fontFamily: Newsreader
+    fontSize: 36px
+    fontWeight: '400'
+    lineHeight: '1.1'
+    letterSpacing: -0.01em
   headline-lg-mobile:
-    fontFamily: Geist
-    fontSize: 24px
-    fontWeight: '600'
-    lineHeight: '1.2'
+    fontFamily: Newsreader
+    fontSize: 30px
+    fontWeight: '400'
+    lineHeight: '1.1'
   body-md:
-    fontFamily: Geist
+    fontFamily: Inter
     fontSize: 16px
     fontWeight: '400'
     lineHeight: '1.6'
@@ -77,75 +60,82 @@ typography:
     fontWeight: '400'
     lineHeight: '1.5'
   label-caps:
-    fontFamily: Geist
+    fontFamily: Inter
     fontSize: 11px
-    fontWeight: '700'
+    fontWeight: '600'
     lineHeight: '1'
-    letterSpacing: 0.1em
+    letterSpacing: 0.08em
 spacing:
   unit: 4px
   gutter: 24px
-  margin: 48px
-  container-max: 1440px
+  margin: 40px
+  container-max: 1152px
 ---
 
 ## Brand & Style
 
-The design system is rooted in the philosophy of "Precision Engineering," drawing heavy influence from Swiss International Style and technical schematics. It treats workflow orchestration as a discipline of structural integrity and logical clarity rather than a mere software task. 
+The design system is **monochrome, editorial, and calm** — inspired by Claude.ai's typography-first language. It treats workflow orchestration as a serious engineering discipline and reads like a well-set technical document, not a marketing site.
 
-The aesthetic is strictly **Minimalist** and **Geometric**. It prioritizes structural hierarchy and rhythmic alignment over decorative elements. The visual language utilizes thin lines, sharp intersections, and clear data nodes to evoke the feeling of an architectural blueprint or a complex circuit diagram. Surfaces are flat and purposeful, rejecting the trend of soft shadows or translucent blurs in favor of "hard" logic and industrial efficiency.
+The aesthetic is **minimalist and typographic**. Hierarchy comes from type scale, weight, and generous whitespace — never from color. Surfaces are flat, warm, and quiet: soft paper in light mode, warm charcoal in dark. No gradients, glassmorphism, drop shadows, or flashy effects.
 
 ## Colors
 
-The system operates primarily in a high-contrast **Dark Mode** to reduce eye strain during complex engineering tasks, with a "Warm White" light mode alternative. 
+A **warm-gray monochrome palette** (Claude/Notion character), specified independently for light and dark — not a mechanical inversion.
 
-- **Primary Indigo (#4F46E5):** Reserved exclusively for functional states—action triggers, active selection indicators, and primary navigation nodes.
-- **Secondary Acid (#D9F07C):** Used sparingly as a high-visibility alert or "success" marker to break the monochrome palette.
-- **Tertiary Burnt Sienna (#AA5544):** Introduced as a specialized accent for warning states, complex data branching, or auxiliary technical annotations.
-- **Neutrals:** A range of deep charcoals and warm blacks create the structural scaffolding.
-- **Functional Application:** Use strokes (#242424) rather than solid fills to define boundaries. Avoid color-coded status pills; instead, rely on geometric symbols and the primary indigo to indicate status change.
+- **Light:** warm paper background (`#faf9f7`), white surfaces, graphite ink (`#292724`) with a muted-gray ramp.
+- **Dark:** warm charcoal background (`#1a1917`), layered surfaces, soft off-white ink (`#ece9e3`).
+- **No accent color.** Primary actions use an **inverse fill** (ink-colored button, paper-colored text), the way Claude renders its primary buttons.
+- **One reserved semantic — muted red (`--danger`).** Used *only* for destructive actions and error/failed/DLQ states. Never decorative, never a general-purpose accent.
+- **Neutrals carry everything else.** Boundaries are hairline strokes (`--border`, `--border-strong`), not fills.
+
+Semantic status is communicated primarily through **geometry and weight**, with danger-red added only for critical states so they remain distinguishable and accessible.
 
 ## Typography
 
-Typography is the primary driver of hierarchy. This design system utilizes **Geist** for its precision and neutral, grotesque characteristics. For technical data and code-level orchestration details, **JetBrains Mono** provides a monospaced contrast that reinforces the engineering-first aesthetic.
+Typography is the primary driver of hierarchy.
 
-- **Scale:** Use dramatic scale shifts between headlines and body text to create an editorial feel.
-- **Labels:** Small, all-caps labels with increased tracking should be used for metadata and technical specs.
-- **Weight:** Use weight selectively; thin for secondary information, bold for primary navigational anchors.
+- **Newsreader** (serif) for display and headings — editorial, calm, high-contrast.
+- **Inter** (sans) for body copy and all UI text.
+- **JetBrains Mono** for code, IDs, checksums, timestamps, and technical metadata.
+- **Scale:** dramatic shifts between serif headlines and small sans body create an editorial feel.
+- **Labels:** small all-caps labels (`.label-caps`, 11px, 0.08em tracking, faint ink) for metadata and section headers.
+- **Weight:** used sparingly. The serif stays at regular weight; emphasis comes from size and spacing, not heavy bold.
 
 ## Layout & Spacing
 
-The layout is built on a strict **12-column rhythmic grid** with a 4px baseline unit. 
+Built on a 4px baseline unit with an editorial content column.
 
-- **Asymmetry:** Content should favor an asymmetric distribution. For example, a 4-column sidebar paired with an 8-column workspace, or wide "blueprint" margins on the left to anchor the eye.
-- **Margins:** Generous outer margins (48px+) are required to maintain the "editorial" and "premium" feel.
-- **Grid Lines:** In complex views (like graph editors), the grid itself may be visualized with subtle 1px dots or lines at 24px intervals to guide the placement of nodes.
-- **Responsiveness:** On mobile, collapse columns into a single stack but maintain the 24px gutter to preserve the sense of air and precision.
+- **Content max-width ~1152px**, centered inside the dashboard shell with generous outer margins (40px+ on desktop).
+- **Asymmetry & air:** favor whitespace as a structural element. Avoid perfectly centered marketing sections.
+- **Responsiveness:** sidebar collapses into a mobile drawer below `md`; columns stack to a single flow while preserving gutters. Verified at 375 / 768 / 1024 / 1440px.
 
 ## Elevation & Depth
 
-This system rejects traditional shadows. Depth is achieved through **Tonal Layering** and **Low-contrast Outlines**.
+No traditional shadows. Depth comes from **tonal layering** and **hairline outlines**.
 
-- **Stacked Tiers:** The background is the darkest layer (#0F0F0F). Active workspace areas or panels are one step lighter (#141414).
-- **Outlines:** Use 1px solid strokes (#242424) to define the edges of panels and containers. 
-- **Z-axis:** To indicate an element is "above" another (like a dropdown or modal), increase the stroke brightness or change the background slightly, but do not add a drop shadow. The feeling should be of physical plates or sheets of metal being slid over one another.
+- **Stacked tiers:** `background` is the base; `surface` and `surface-2` step up subtly for panels and headers.
+- **Outlines:** 1px `border` strokes define panel and container edges.
+- **Z-axis:** dropdowns/drawers use a scrim + slightly brighter surface, never a drop shadow.
 
 ## Shapes
 
-The shape language is strictly **Sharp (0px roundedness)**. 
-
-- **Geometry:** Every container, button, and input field must have 90-degree corners. 
-- **Icons:** Use primitive geometric symbols. Avoid rounded icons or "bubbly" pictograms. Statuses should be communicated through specific geometries: a circle for a node, a diamond for a decision, and a hexagon for a trigger.
-- **Connecting Lines:** Workflow paths should use "Manhattan" routing (only 90-degree turns) or perfect 45-degree angles, mirroring a PCB trace or architectural ducting.
+The shape language is **sharp (0px roundedness)** for containers, buttons, inputs, and panels. Only status/heartbeat dots are circular. Corners stay at 90° to preserve the technical, engineered feel.
 
 ## Components
 
-- **Buttons:** Rectangular, sharp corners. Primary buttons are solid Indigo (#4F46E5) with white text. Secondary buttons are 1px outlines. No gradients.
-- **Inputs:** 1px stroke (#242424) that turns Indigo on focus. Use monospaced font (JetBrains Mono) for numerical or code inputs.
-- **Nodes/Cards:** Cards are simple outlined containers. Avoid padding-heavy "bubbles." Data should be densely but clearly packed, utilizing small uppercase labels.
-- **Status Indicators:** Avoid red/green/yellow traffic light pills. Use geometric icons: 
-    - *Processing:* A rotating 1px ring.
-    - *Success:* A solid white square.
-    - *Error:* A 45-degree tilted square (diamond) with a thin Burnt Sienna (#AA5544) stroke.
-- **Lists:** Rows separated by 1px horizontal lines only. High-density text with no excessive vertical padding.
-- **Scrollbars:** Custom thin (4px) scrollbars with no rounded ends, matching the surface-stroke color.
+- **Buttons:** rectangular, sharp corners. Primary = inverse fill (ink bg, paper text). Secondary = 1px outline. Danger = muted-red outline on `danger-soft`. No gradients.
+- **Inputs:** 1px stroke that turns to `foreground` on focus. Monospace for keys and code.
+- **Panels/Cards:** simple outlined containers with `surface-2` headers. Densely but clearly packed; small uppercase labels for metadata.
+- **Status indicators (geometry, not traffic-light pills):**
+    - *Running:* rotating 1px ring (ink).
+    - *Completed:* solid square (ink).
+    - *Queued:* hollow square.
+    - *Retrying:* double circle.
+    - *Failed:* broken diamond (danger red).
+    - *Dead-lettered:* dashed broken square (danger red).
+- **Lists/Tables:** rows separated by 1px hairlines only. High-density text, comfortable but compact vertical rhythm, hover-revealed actions.
+- **Scrollbars:** thin (8px) with no bright color, matching the border tone.
+
+## Motion
+
+Refined and deliberate. Transitions 150–250ms. Page/panel fades, row highlights, drawer slide, subtle pulses on live indicators. No bouncing, spinning loaders, or large entrance animations. `prefers-reduced-motion` is fully respected.
