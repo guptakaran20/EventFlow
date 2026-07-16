@@ -8,6 +8,7 @@ import { DeadLetterJobResponse } from "@/lib/types";
 import { Icons, StatusIcon } from "@/components/icons";
 import { PageHeader, Table, Th, EmptyState, Button } from "@/components/ui";
 import { format } from "date-fns";
+import { usePageReveal, useRowStagger } from "@/lib/reveal";
 
 export default function DLQPage() {
   const queryClient = useQueryClient();
@@ -30,13 +31,19 @@ export default function DLQPage() {
     },
   });
 
+  const root = usePageReveal<HTMLDivElement>();
+  const rowsKey = dlq?.map((j) => j.id).join(",");
+  const tbodyScope = useRowStagger<HTMLTableSectionElement>(rowsKey, "[data-row]");
+
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Dead Letter Queue"
-        description="Execution nodes that exhausted their retries and require manual intervention."
-        danger
-      />
+    <div ref={root} className="space-y-8">
+      <div data-reveal-head>
+        <PageHeader
+          title="Dead Letter Queue"
+          description="Execution nodes that exhausted their retries and require manual intervention."
+          danger
+        />
+      </div>
 
       {error ? (
         <div className="p-4 bg-danger-soft border border-danger-border text-danger text-sm">
@@ -65,10 +72,10 @@ export default function DLQPage() {
               <Th className="w-32 text-right">Action</Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody ref={tbodyScope} className="divide-y divide-border">
             {dlq?.map((job) => (
               <React.Fragment key={job.id}>
-                <tr className="hover:bg-surface-hover transition-colors">
+                <tr data-row className="hover:bg-surface-hover transition-colors">
                   <td className="px-4 py-3">
                     <StatusIcon status={job.resolved_at ? "COMPLETED" : "DEAD_LETTERED"} />
                   </td>

@@ -9,6 +9,7 @@ import { Icons, StatusIcon } from "@/components/icons";
 import { useExecutionWebSocket } from "@/lib/websocket";
 import { Button, Badge } from "@/components/ui";
 import { format } from "date-fns";
+import { usePageReveal, useRowStagger } from "@/lib/reveal";
 
 export default function ExecutionDetailPage() {
   const params = useParams();
@@ -39,6 +40,12 @@ export default function ExecutionDetailPage() {
     }
   });
 
+  const root = usePageReveal<HTMLDivElement>([execution?.id]);
+  const nodesKey = execution?.node_executions
+    .map((n) => `${n.id}:${n.status}`)
+    .join(",");
+  const nodesScope = useRowStagger<HTMLTableSectionElement>(nodesKey, "[data-row]");
+
   if (error) {
     return <div className="p-4 bg-danger-soft text-danger border border-danger-border text-sm">Failed to load execution.</div>;
   }
@@ -53,8 +60,8 @@ export default function ExecutionDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-9rem)]">
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+    <div ref={root} className="flex flex-col h-[calc(100vh-9rem)]">
+      <div data-reveal-head className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
           <div className="label-caps mb-2 flex items-center gap-2">
             <StatusIcon status={execution.status} className="w-3.5 h-3.5" />
@@ -79,7 +86,7 @@ export default function ExecutionDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden min-h-0">
         {/* Nodes */}
-        <div className="lg:col-span-2 border border-border bg-surface flex flex-col overflow-hidden min-h-0">
+        <div data-reveal className="lg:col-span-2 border border-border bg-surface flex flex-col overflow-hidden min-h-0">
           <div className="px-4 h-11 border-b border-border bg-surface-2 flex justify-between items-center shrink-0">
             <span className="label-caps">Node Executions</span>
             <span className="font-mono text-xs text-foreground-faint">
@@ -97,9 +104,9 @@ export default function ExecutionDetailPage() {
                   <th className="px-4 h-10 text-right font-medium text-[11px] uppercase tracking-wider text-foreground-faint">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody ref={nodesScope} className="divide-y divide-border">
                 {execution.node_executions.map((node) => (
-                  <tr key={node.id} className="group hover:bg-surface-hover transition-colors">
+                  <tr key={node.id} data-row className="group hover:bg-surface-hover transition-colors">
                     <td className="px-4 py-3 font-medium">{node.node_id}</td>
                     <td className="px-4 py-3 font-mono text-xs text-foreground-muted">{node.node_type}</td>
                     <td className="px-4 py-3 text-foreground-muted text-xs font-mono">
@@ -138,7 +145,7 @@ export default function ExecutionDetailPage() {
         </div>
 
         {/* Logs */}
-        <div className="border border-border bg-surface flex flex-col overflow-hidden min-h-0">
+        <div data-reveal className="border border-border bg-surface flex flex-col overflow-hidden min-h-0">
           <div className="px-4 h-11 border-b border-border bg-surface-2 flex justify-between items-center shrink-0">
             <span className="label-caps">Execution Logs</span>
           </div>

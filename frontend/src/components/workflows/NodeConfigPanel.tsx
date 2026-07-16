@@ -6,16 +6,12 @@ import { Icons } from "@/components/icons";
 interface NodeConfigPanelProps {
   selectedNode: FlowNode<ExecutorNodeData> | null;
   onUpdateConfig: (nodeId: string, name: string, config: Record<string, any>) => void;
+  onClose: () => void;
 }
 
-export function NodeConfigPanel({ selectedNode, onUpdateConfig }: NodeConfigPanelProps) {
+export function NodeConfigPanel({ selectedNode, onUpdateConfig, onClose }: NodeConfigPanelProps) {
   if (!selectedNode) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-l border-border bg-surface text-foreground-faint">
-        <Icons.MousePointer2 className="w-8 h-8 mb-4 opacity-50" />
-        <p className="text-sm">Select a node to configure its properties</p>
-      </div>
-    );
+    return null;
   }
 
   const { id, data } = selectedNode;
@@ -30,15 +26,20 @@ export function NodeConfigPanel({ selectedNode, onUpdateConfig }: NodeConfigPane
   };
 
   return (
-    <div className="flex-1 flex flex-col border-l border-border bg-surface overflow-hidden w-80 shrink-0">
-      <div className="p-4 border-b border-border bg-surface-2 flex items-center gap-3">
-        <div className="w-8 h-8 rounded bg-surface border border-border flex items-center justify-center shrink-0">
-          <Icons.Settings className="w-4 h-4 text-foreground" />
+    <div className="absolute top-4 right-4 z-50 flex flex-col dag-glass rounded-xl overflow-hidden w-80 shadow-2xl border border-border/60 max-h-[calc(100%-2rem)]">
+      <div className="p-4 border-b border-border/60 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0">
+            <Icons.Settings className="w-4 h-4 text-foreground" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-foreground truncate">{name || "Unnamed Node"}</div>
+            <div className="text-xs text-foreground-muted uppercase tracking-wider">{type}</div>
+          </div>
         </div>
-        <div className="min-w-0">
-          <div className="text-sm font-medium text-foreground truncate">{name || "Unnamed Node"}</div>
-          <div className="text-xs text-foreground-muted uppercase tracking-wider">{type}</div>
-        </div>
+        <button onClick={onClose} className="p-1.5 hover:bg-surface-hover rounded-md text-foreground-muted hover:text-foreground transition-colors shrink-0">
+          <Icons.Close className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="flex-1 overflow-auto p-4 space-y-6">

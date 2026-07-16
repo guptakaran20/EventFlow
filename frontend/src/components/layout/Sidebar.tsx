@@ -58,6 +58,15 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
 
+  let bestMatch = "";
+  NAV.forEach((group) => {
+    group.items.forEach((item) => {
+      if (pathname.startsWith(item.href) && item.href.length > bestMatch.length) {
+        bestMatch = item.href;
+      }
+    });
+  });
+
   const { data: metrics } = useQuery<MetricsSummaryResponse>({
     queryKey: ["metrics", "summary"],
     queryFn: () => api.get<MetricsSummaryResponse>("/metrics/summary"),
@@ -120,7 +129,7 @@ export function Sidebar({
                 {group.heading}
               </div>
               {group.items.map((item) => {
-                const isActive = pathname.startsWith(item.href);
+                const isActive = item.href === bestMatch;
                 const badge = badgeValue(item.badge);
                 const showBadge = badge > 0;
                 return (

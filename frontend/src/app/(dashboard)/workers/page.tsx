@@ -7,6 +7,7 @@ import { WorkerResponse } from "@/lib/types";
 import { Icons, StatusIcon } from "@/components/icons";
 import { PageHeader, Table, Th, EmptyState } from "@/components/ui";
 import { formatDistanceToNow } from "date-fns";
+import { usePageReveal, useRowStagger } from "@/lib/reveal";
 
 export default function WorkersPage() {
   const { data: workers, isLoading, error } = useQuery<WorkerResponse[]>({
@@ -15,12 +16,18 @@ export default function WorkersPage() {
     refetchInterval: 5000,
   });
 
+  const root = usePageReveal<HTMLDivElement>();
+  const rowsKey = workers?.map((w) => w.id).join(",");
+  const tbodyScope = useRowStagger<HTMLTableSectionElement>(rowsKey, "[data-row]");
+
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Workers"
-        description="Distributed worker instances consuming and executing workflow nodes."
-      />
+    <div ref={root} className="space-y-8">
+      <div data-reveal-head>
+        <PageHeader
+          title="Workers"
+          description="Distributed worker instances consuming and executing workflow nodes."
+        />
+      </div>
 
       {error ? (
         <div className="p-4 bg-danger-soft border border-danger-border text-danger text-sm">
@@ -48,13 +55,13 @@ export default function WorkersPage() {
               <Th>Current Job</Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody ref={tbodyScope} className="divide-y divide-border">
             {workers?.map((worker) => {
               const lastHeartbeat = new Date(worker.last_heartbeat);
               const isStale = Date.now() - lastHeartbeat.getTime() > 30000;
 
               return (
-                <tr key={worker.id} className="hover:bg-surface-hover transition-colors">
+                <tr key={worker.id} data-row className="hover:bg-surface-hover transition-colors">
                   <td className="px-4 py-3 font-mono text-xs">{worker.hostname}</td>
                   <td className="px-4 py-3 font-mono text-xs text-foreground-muted">{worker.pid}</td>
                   <td className="px-4 py-3">

@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { ExecutionResponse } from "@/lib/types";
 import { StatusIcon } from "@/components/icons";
 import { PageHeader, Table, Th, EmptyState, Badge } from "@/components/ui";
+import { usePageReveal, useRowStagger } from "@/lib/reveal";
 
 export default function ExecutionsPage() {
   const { data: executions, isLoading, error } = useQuery<ExecutionResponse[]>({
@@ -15,12 +16,18 @@ export default function ExecutionsPage() {
     refetchInterval: 5000,
   });
 
+  const root = usePageReveal<HTMLDivElement>();
+  const rowsKey = executions?.map((e) => e.id).join(",");
+  const tbodyScope = useRowStagger<HTMLTableSectionElement>(rowsKey, "[data-row]");
+
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Executions"
-        description="Global execution history across all workflows. Updates live."
-      />
+    <div ref={root} className="space-y-8">
+      <div data-reveal-head>
+        <PageHeader
+          title="Executions"
+          description="Global execution history across all workflows. Updates live."
+        />
+      </div>
 
       {error ? (
         <div className="p-4 bg-danger-soft border border-danger-border text-danger text-sm">
@@ -47,9 +54,9 @@ export default function ExecutionsPage() {
               <Th className="w-40">Status</Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody ref={tbodyScope} className="divide-y divide-border">
             {executions?.map((ex) => (
-              <tr key={ex.id} className="hover:bg-surface-hover transition-colors">
+              <tr key={ex.id} data-row className="hover:bg-surface-hover transition-colors">
                 <td className="px-4 py-3">
                   <StatusIcon status={ex.status} />
                 </td>

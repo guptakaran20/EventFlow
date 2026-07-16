@@ -8,6 +8,7 @@ import { WorkflowListResponse } from "@/lib/types";
 import { Icons } from "@/components/icons";
 import { PageHeader, LinkButton, Table, Th, EmptyState } from "@/components/ui";
 import { format } from "date-fns";
+import { usePageReveal, useRowStagger } from "@/lib/reveal";
 
 export default function WorkflowsPage() {
   const { data: workflows, isLoading, error } = useQuery<WorkflowListResponse[]>({
@@ -15,17 +16,23 @@ export default function WorkflowsPage() {
     queryFn: () => api.get<WorkflowListResponse[]>("/workflows"),
   });
 
+  const root = usePageReveal<HTMLDivElement>();
+  const rowsKey = workflows?.map((w) => w.id).join(",");
+  const tbodyScope = useRowStagger<HTMLTableSectionElement>(rowsKey, "[data-row]");
+
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Workflows"
-        description="Author, version, and execute workflow definitions."
-        actions={
-          <LinkButton href="/workflows/new" variant="primary">
-            New Workflow
-          </LinkButton>
-        }
-      />
+    <div ref={root} className="space-y-8">
+      <div data-reveal-head>
+        <PageHeader
+          title="Workflows"
+          description="Author, version, and execute workflow definitions."
+          actions={
+            <LinkButton href="/workflows/new" variant="primary">
+              New Workflow
+            </LinkButton>
+          }
+        />
+      </div>
 
       {error ? (
         <div className="p-4 bg-danger-soft border border-danger-border text-danger text-sm">
@@ -59,9 +66,9 @@ export default function WorkflowsPage() {
               <Th className="w-12" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody ref={tbodyScope} className="divide-y divide-border">
             {workflows?.map((wf) => (
-              <tr key={wf.id} className="hover:bg-surface-hover transition-colors group">
+              <tr key={wf.id} data-row className="hover:bg-surface-hover transition-colors group">
                 <td className="px-4 py-3">
                   <Link
                     href={`/workflows/${wf.id}`}

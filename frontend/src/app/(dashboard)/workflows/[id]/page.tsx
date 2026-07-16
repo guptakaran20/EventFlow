@@ -9,6 +9,7 @@ import { Icons } from "@/components/icons";
 import { Button, PageHeader } from "@/components/ui";
 import { format } from "date-fns";
 import { ReactFlowEditor } from "@/components/workflows/ReactFlowEditor";
+import { usePageReveal } from "@/lib/reveal";
 
 const DEFAULT_WORKFLOW = {
   name: "New Workflow",
@@ -32,6 +33,7 @@ export default function WorkflowEditorPage() {
 
   const [json, setJson] = useState(JSON.stringify(DEFAULT_WORKFLOW, null, 2));
   const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
+  const [showHistory, setShowHistory] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -112,6 +114,8 @@ export default function WorkflowEditorPage() {
     startExecutionMutation.mutate(latestVersion.id);
   };
 
+  const root = usePageReveal<HTMLDivElement>([isLoading, isNew]);
+
   if (isLoading && !isNew) {
     return (
       <div className="animate-pulse space-y-4">
@@ -122,34 +126,36 @@ export default function WorkflowEditorPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-9rem)]">
-      <PageHeader
-        title={isNew ? "Create Workflow" : workflow?.name || "Workflow"}
-        description={
-          isNew
-            ? "Define nodes and edges as JSON, then save the first version."
-            : `${workflow?.versions.length ?? 0} version${
-                workflow?.versions.length === 1 ? "" : "s"
-              } · ID ${workflow?.id?.slice(0, 8)}…`
-        }
-        actions={
-          <>
-            <Button onClick={handleSave} disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? "Saving…" : "Save Version"}
-            </Button>
-            {!isNew && (
-              <Button
-                variant="primary"
-                onClick={handleStart}
-                disabled={startExecutionMutation.isPending}
-              >
-                <Icons.Play className="w-3.5 h-3.5 fill-current" />
-                {startExecutionMutation.isPending ? "Starting…" : "Run"}
+    <div ref={root} className="flex flex-col h-[calc(100vh-5rem)]">
+      <div data-reveal-head>
+        <PageHeader
+          title={isNew ? "Create Workflow" : workflow?.name || "Workflow"}
+          description={
+            isNew
+              ? "Define nodes and edges as JSON, then save the first version."
+              : `${workflow?.versions.length ?? 0} version${
+                  workflow?.versions.length === 1 ? "" : "s"
+                } · ID ${workflow?.id?.slice(0, 8)}…`
+          }
+          actions={
+            <>
+              <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "Saving…" : "Save Version"}
               </Button>
-            )}
-          </>
-        }
-      />
+              {!isNew && (
+                <Button
+                  variant="primary"
+                  onClick={handleStart}
+                  disabled={startExecutionMutation.isPending}
+                >
+                  <Icons.Play className="w-3.5 h-3.5 fill-current" />
+                  {startExecutionMutation.isPending ? "Starting…" : "Run"}
+                </Button>
+              )}
+            </>
+          }
+        />
+      </div>
 
       {validationError && (
         <div className="mt-6 p-4 bg-danger-soft border border-danger-border text-danger text-sm flex items-center gap-2">
@@ -164,8 +170,8 @@ export default function WorkflowEditorPage() {
         </div>
       )}
 
-      <div className="mt-6 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
-        <div className="lg:col-span-3 border border-border bg-surface flex flex-col min-h-0">
+      <div className="mt-4 flex-1 flex gap-4 min-h-0">
+        <div data-reveal className="flex-1 min-w-0 border border-border bg-surface flex flex-col min-h-0">
           <div className="bg-surface-2 border-b border-border px-4 h-11 flex items-center justify-between shrink-0">
             <div className="flex gap-1">
               <button
@@ -189,13 +195,20 @@ export default function WorkflowEditorPage() {
                 JSON Code
               </button>
             </div>
-            {viewMode === "json" ? (
-              <Icons.Code className="w-4 h-4 text-foreground-faint" />
-            ) : (
-              <Icons.Workflow className="w-4 h-4 text-foreground-faint" />
-            )}
+            <button
+              onClick={() => setShowHistory((v) => !v)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
+                showHistory
+                  ? "bg-surface text-foreground border-border"
+                  : "text-foreground-muted hover:text-foreground border-transparent"
+              }`}
+              title="Toggle version history"
+            >
+              <Icons.Code className="w-3.5 h-3.5" />
+              History
+            </button>
           </div>
-          
+
           {viewMode === "json" ? (
             <textarea
               value={json}
@@ -226,10 +239,18 @@ export default function WorkflowEditorPage() {
           )}
         </div>
 
-        {/* Version history — git-style */}
-        <div className="border border-border bg-surface flex flex-col min-h-0">
-          <div className="bg-surface-2 border-b border-border px-4 h-11 flex items-center shrink-0">
+        {/* Version history — git-style, collapsible */}
+        {showHistory && (
+        <div data-reveal className="w-72 shrink-0 border border-border bg-surface flex flex-col min-h-0">
+          <div className="bg-surface-2 border-b border-border px-4 h-11 flex items-center justify-between shrink-0">
             <span className="label-caps">Version History</span>
+            <button
+              onClick={() => setShowHistory(false)}
+              className="text-foreground-faint hover:text-foreground"
+              title="Close"
+            >
+              <Icons.Close className="w-3.5 h-3.5" />
+            </button>
           </div>
           <div className="flex-1 overflow-auto p-2">
             {isNew || !workflow?.versions.length ? (
@@ -265,6 +286,7 @@ export default function WorkflowEditorPage() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

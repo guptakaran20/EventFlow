@@ -1,16 +1,52 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { api } from "@/lib/api";
 import { Icons } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme";
+
+gsap.registerPlugin(useGSAP);
 
 export default function LoginPage() {
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const root = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const strokes = root.current?.querySelectorAll<SVGGeometryElement>(
+          "[data-blueprint] circle, [data-blueprint] path"
+        );
+        strokes?.forEach((s) => {
+          const len = s.getTotalLength();
+          gsap.set(s, { strokeDasharray: len, strokeDashoffset: len });
+        });
+        const tl = gsap
+          .timeline({ defaults: { ease: "power3.out" } })
+          .from("[data-blueprint]", { opacity: 0, scale: 0.9, duration: 1.2 })
+          .from("[data-logo]", { opacity: 0, y: 12, scale: 0.8, duration: 0.6 }, "-=0.8")
+          .from("[data-title]", { opacity: 0, y: 14, duration: 0.5 }, "-=0.3")
+          .from("[data-sub]", { opacity: 0, y: 10, duration: 0.5 }, "-=0.35")
+          .from("[data-field]", { opacity: 0, y: 12, duration: 0.5, stagger: 0.1 }, "-=0.25");
+        if (strokes?.length) {
+          tl.to(
+            strokes,
+            { strokeDashoffset: 0, duration: 2, ease: "power1.inOut" },
+            0
+          );
+        }
+      });
+      return () => mm.revert();
+    },
+    { scope: root }
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +71,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div ref={root} className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-5 right-5 z-20">
         <ThemeToggle />
       </div>
       {/* Faint blueprint */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.04] flex items-center justify-center text-foreground">
+      <div data-blueprint className="absolute inset-0 pointer-events-none opacity-[0.04] flex items-center justify-center text-foreground">
         <svg viewBox="0 0 800 800" className="w-full max-w-4xl h-auto" stroke="currentColor" fill="none">
-          <circle cx="400" cy="400" r="300" strokeWidth="1" strokeDasharray="4 4" />
+          <circle cx="400" cy="400" r="300" strokeWidth="1" />
           <circle cx="400" cy="400" r="200" strokeWidth="1" />
           <path d="M400 100 L400 700 M100 400 L700 400" strokeWidth="1" />
         </svg>
@@ -50,17 +86,17 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm z-10">
         <div className="mb-12 text-center">
-          <div className="flex justify-center mb-5">
+          <div data-logo className="flex justify-center mb-5">
             <Icons.Workflow className="w-8 h-8 text-foreground" />
           </div>
-          <h1 className="font-serif text-3xl tracking-tight">EventFlow</h1>
-          <p className="text-foreground-muted mt-2 text-sm">
+          <h1 data-title className="font-serif text-3xl tracking-tight">EventFlow</h1>
+          <p data-sub className="text-foreground-muted mt-2 text-sm">
             Enter your API key to connect
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
+          <div data-field className="space-y-2">
             <label htmlFor="apiKey" className="label-caps block">
               API Key
             </label>
@@ -85,6 +121,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !apiKey}
+            data-field
             className="w-full bg-inverse text-inverse-foreground px-4 h-11 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? "Authenticating…" : "Connect"}

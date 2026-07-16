@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useRef, useState, useMemo } from "react";
 import {
   ReactFlow,
   Controls,
   Background,
+  BackgroundVariant,
+  MiniMap,
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
@@ -12,20 +14,28 @@ import {
   EdgeChange,
   Connection,
   Panel,
-  ColorMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuidv4 } from "uuid";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 
 import { ExecutorNode, ExecutorNodeData } from "./nodes/ExecutorNode";
 import { NodeConfigPanel } from "./NodeConfigPanel";
-import { WorkflowDefinition, Node, Edge } from "@/lib/types";
+import { WorkflowDefinition } from "@/lib/types";
 import { Icons } from "@/components/icons";
-import { Button } from "@/components/ui";
+
+gsap.registerPlugin(useGSAP);
 
 const nodeTypes = {
   executor: ExecutorNode,
 };
+
+const PALETTE: { type: string; label: string; accent: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { type: "http", label: "HTTP", accent: "#3b82f6", Icon: Icons.Globe },
+  { type: "delay", label: "Delay", accent: "#f59e0b", Icon: Icons.Clock },
+  { type: "condition", label: "Condition", accent: "#a855f7", Icon: Icons.GitBranch },
+];
 
 interface ReactFlowEditorProps {
   workflow: WorkflowDefinition;
@@ -33,14 +43,12 @@ interface ReactFlowEditorProps {
 }
 
 export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
-  // Convert WorkflowDefinition to ReactFlow format on mount/props change
   const initialNodes: FlowNode<ExecutorNodeData>[] = useMemo(() => {
     const nodesList = workflow.nodes || [];
     return nodesList.map((n, i) => ({
       id: n.id,
       type: "executor",
-      // Simple auto-layout if they all spawn at 0,0. In a real app we'd save positions in the node config metadata.
-      position: { x: 250, y: i * 100 + 50 },
+      position: { x: 280, y: i * 130 + 60 },
       data: {
         type: n.type,
         name: n.name,
@@ -56,14 +64,34 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
       source: e.from,
       target: e.to,
       label: e.condition || undefined,
+      animated: true,
     }));
   }, [workflow.edges]);
 
   const [nodes, setNodes] = useState<FlowNode<ExecutorNodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<FlowEdge[]>(initialEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Sync back to workflow definition
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.from(".react-flow__node", {
+          opacity: 0,
+          scale: 0.85,
+          y: 12,
+          duration: 0.5,
+          stagger: 0.07,
+          ease: "back.out(1.6)",
+          clearProps: "transform,opacity",
+        });
+      });
+      return () => mm.revert();
+    },
+    { scope: canvasRef }
+  );
+
   const notifyChange = useCallback((newNodes: FlowNode<ExecutorNodeData>[], newEdges: FlowEdge[]) => {
     const updatedWorkflow: WorkflowDefinition = {
       ...workflow,
@@ -86,9 +114,6 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
     (changes: NodeChange<FlowNode<ExecutorNodeData>>[]) => {
       setNodes((nds) => {
         const next = applyNodeChanges(changes, nds);
-        // Only notify if something other than selection/position changed?
-        // Actually, position isn't saved in MVP, so we don't strictly need to notify on drag, 
-        // but removing nodes should trigger notify.
         const structuralChange = changes.some(c => c.type === 'remove' || c.type === 'add');
         if (structuralChange) {
            notifyChange(next, edges);
@@ -118,11 +143,9 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
       if (!adj[e.source]) adj[e.source] = [];
       adj[e.source].push(e.target);
     }
-    // Add the prospective edge
     if (!adj[source]) adj[source] = [];
     adj[source].push(target);
 
-    // Check for cycles
     const visited = new Set<string>();
     const recStack = new Set<string>();
 
@@ -141,7 +164,6 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
       return false;
     };
 
-    // Check from all nodes
     const nodeIds = new Set(allEdges.flatMap(e => [e.source, e.target]).concat([source, target]));
     for (const nodeId of nodeIds) {
       if (dfs(nodeId)) return true;
@@ -156,7 +178,7 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
         return;
       }
       setEdges((eds) => {
-        const next = addEdge(params, eds);
+        const next = addEdge({ ...params, animated: true }, eds);
         notifyChange(nodes, next);
         return next;
       });
@@ -189,7 +211,7 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
     const newNode: FlowNode<ExecutorNodeData> = {
       id: `node_${uuidv4().split('-')[0]}`,
       type: "executor",
-      position: { x: Math.random() * 200 + 100, y: Math.random() * 200 + 100 },
+      position: { x: Math.random() * 200 + 160, y: Math.random() * 200 + 120 },
       data: {
         type,
         name: `New ${type}`,
@@ -206,8 +228,8 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
   const selectedNode = useMemo(() => nodes.find(n => n.id === selectedNodeId) || null, [nodes, selectedNodeId]);
 
   return (
-    <div className="flex w-full h-full min-h-0 bg-surface">
-      <div className="flex-1 h-full relative">
+    <div className="relative w-full h-full min-h-0">
+      <div ref={canvasRef} className="w-full h-full relative">
         <ReactFlow
           nodes={nodes.map(n => ({...n, selected: n.id === selectedNodeId}))}
           edges={edges}
@@ -219,26 +241,56 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
           nodeTypes={nodeTypes}
           colorMode="dark"
           fitView
-          className="bg-surface-2"
+          deleteKeyCode={["Delete", "Backspace"]}
+          proOptions={{ hideAttribution: true }}
+          className="dag-canvas"
         >
-          <Background gap={16} size={1} />
-          <Controls />
-          
-          <Panel position="top-left" className="bg-surface border border-border rounded shadow-sm p-2 flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => addNode("http")}>
-              <Icons.Globe className="w-3.5 h-3.5 mr-1 text-blue-500" /> HTTP
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => addNode("delay")}>
-              <Icons.Clock className="w-3.5 h-3.5 mr-1 text-amber-500" /> Delay
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => addNode("condition")}>
-              <Icons.GitBranch className="w-3.5 h-3.5 mr-1 text-purple-500" /> Condition
-            </Button>
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={22}
+            size={1}
+            className="opacity-60"
+          />
+          <Controls showInteractive={false} />
+          <MiniMap
+            pannable
+            zoomable
+            nodeColor={() => "var(--foreground-muted)"}
+            maskColor="color-mix(in srgb, var(--background) 78%, transparent)"
+          />
+
+          <Panel position="top-left" className="!m-4">
+            <div className="dag-glass rounded-xl p-1.5 flex flex-col gap-1">
+              <div className="label-caps px-2.5 pt-1.5 pb-1 !text-[10px]">Add Node</div>
+              {PALETTE.map(({ type, label, accent, Icon }) => (
+                <button
+                  key={type}
+                  onClick={() => addNode(type)}
+                  className="group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm text-foreground hover:bg-surface-hover transition-colors text-left"
+                >
+                  <span
+                    className="flex items-center justify-center w-6 h-6 rounded-md shrink-0 transition-transform group-hover:scale-110"
+                    style={{ background: `color-mix(in srgb, ${accent} 16%, transparent)`, color: accent }}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="font-medium">{label}</span>
+                  <Icons.Plus className="w-3.5 h-3.5 ml-auto text-foreground-faint opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ))}
+              <div className="px-2.5 pt-1.5 pb-1 mt-0.5 border-t border-border/60 text-[10px] text-foreground-faint">
+                Select a node · press{" "}
+                <kbd className="font-mono text-foreground-muted">Del</kbd> to remove
+              </div>
+            </div>
           </Panel>
         </ReactFlow>
       </div>
-      
-      <NodeConfigPanel selectedNode={selectedNode} onUpdateConfig={handleUpdateConfig} />
+      <NodeConfigPanel 
+        selectedNode={selectedNode} 
+        onUpdateConfig={handleUpdateConfig} 
+        onClose={() => setSelectedNodeId(null)} 
+      />
     </div>
   );
 }
