@@ -55,7 +55,10 @@ export default function WorkersPage() {
             </tr>
           </thead>
           <tbody ref={tbodyScope} className="divide-y divide-border">
-            {workers?.map((worker) => {
+            {workers?.filter((worker) => {
+              const isStale = worker.heartbeat_age_seconds !== null && worker.heartbeat_age_seconds > 30;
+              return !isStale && worker.status !== "OFFLINE";
+            }).map((worker) => {
               const lastHeartbeat = worker.last_heartbeat_at ? new Date(worker.last_heartbeat_at) : null;
               const isStale = worker.heartbeat_age_seconds !== null && worker.heartbeat_age_seconds > 30;
 
@@ -64,15 +67,13 @@ export default function WorkersPage() {
                   <td className="px-4 py-3 font-mono text-xs">{worker.hostname}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {isStale ? (
-                        <StatusIcon status="FAILED" className="w-4 h-4" />
-                      ) : worker.status === "BUSY" ? (
+                      {worker.status === "BUSY" ? (
                         <StatusIcon status="RUNNING" className="w-4 h-4" />
                       ) : (
                         <StatusIcon status="QUEUED" className="w-4 h-4" />
                       )}
-                      <span className={`text-xs ${isStale ? "text-danger font-medium" : ""}`}>
-                        {isStale ? "STALE" : worker.status}
+                      <span className="text-xs">
+                        {worker.status}
                       </span>
                     </div>
                   </td>
