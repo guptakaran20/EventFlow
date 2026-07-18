@@ -4,26 +4,14 @@ from httpx import AsyncClient
 from app.core.config import get_settings
 
 
-@pytest.fixture(autouse=True)
-def setup_bootstrap_keys():
-    settings = get_settings()
-    original_keys = settings.bootstrap_api_keys
-    settings.bootstrap_api_keys = "test-key,other-bootstrap-key"
-    yield
-    settings.bootstrap_api_keys = original_keys
-
-
 @pytest.fixture
-def auth_headers():
-    settings = get_settings()
-    test_key = "test-key"
-    return {settings.api_key_header_name: test_key}
-
-
-@pytest.fixture
-def other_auth_headers():
-    settings = get_settings()
-    return {settings.api_key_header_name: "other-bootstrap-key"}
+async def other_auth_headers(client, db_session):
+    from app.services.api_key_service import APIKeyService
+    service = APIKeyService(db_session)
+    api_key_obj, raw_key = await service.create("Other User Key")
+    response = await client.post("/auth/token", json={"api_key": raw_key})
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
 def valid_workflow_payload(name: str = "Test Workflow"):

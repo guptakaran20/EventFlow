@@ -63,11 +63,6 @@ async def authenticate_api_key(
             status_code=401,
         )
 
-    settings = get_settings()
-
-    if api_key in settings.bootstrap_api_keys_list:
-        return AuthenticatedPrincipal(raw_key=api_key, key_type="bootstrap")
-
     db_key = await APIKeyService(db).get_by_raw_key(api_key)
     if db_key is not None:
         db_key.last_used_at = datetime.now(UTC)
@@ -90,11 +85,6 @@ async def resolve_api_key_id(
     If the principal is a bootstrap key, this lazily creates a dummy
     database record so foreign key constraints are satisfied.
     """
-    if principal.key_type == "bootstrap":
-        api_key_service = APIKeyService(db)
-        key = await api_key_service.get_or_create_bootstrap_api_key(principal.raw_key)
-        return key.id
-
     if principal.api_key_id is None:
         raise AppError("Missing API key ID", code="unauthorized", status_code=401)
 

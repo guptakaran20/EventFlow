@@ -239,19 +239,7 @@ def test_ping_envelope_shape():
 # --------------------------------------------------------------------------- #
 
 
-@pytest.fixture(autouse=True)
-def setup_bootstrap_keys():
-    settings = get_settings()
-    original_keys = settings.bootstrap_api_keys
-    settings.bootstrap_api_keys = "test-key,other-bootstrap-key"
-    yield
-    settings.bootstrap_api_keys = original_keys
 
-
-@pytest.fixture
-def auth_headers():
-    settings = get_settings()
-    return {settings.api_key_header_name: "test-key"}
 
 
 @pytest.fixture
@@ -321,7 +309,7 @@ async def test_ws_unauthorized_rejected(
     # Valid key but different owner -> also rejected.
     with pytest.raises(WebSocketDisconnect):
         with sync_client.websocket_connect(
-            f"/api/v1/ws/executions/{execution_id}?api_key=other-bootstrap-key"
+            f"/api/v1/ws/executions/{execution_id}?api_key=other-key"
         ):
             pass
 

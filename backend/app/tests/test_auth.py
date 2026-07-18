@@ -13,10 +13,7 @@ async def test_verify_rejects_invalid_api_key(client):
     assert response.json()["error"]["code"] == "invalid_api_key"
 
 
-async def test_verify_accepts_valid_bootstrap_api_key(client):
-    valid_key = get_settings().bootstrap_api_keys_list
-    if not valid_key:
-        return
-    response = await client.get("/auth/verify", headers={"X-EventFlow-API-Key": valid_key[0]})
+async def test_verify_accepts_valid_api_key(client, auth_headers):
+    response = await client.get("/auth/verify", headers=auth_headers)
     assert response.status_code == 200
     assert response.json() == {"authenticated": True}

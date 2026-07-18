@@ -16,17 +16,14 @@ async def db(engine) -> AsyncSession:
 
 
 @pytest.mark.asyncio
-async def test_list_workers_api(client, db: AsyncSession):
+async def test_list_workers_api(client, db: AsyncSession, auth_headers):
     service = WorkerService(db)
     await service.register_worker("api-worker-1", "host-a")
     await service.register_worker("api-worker-2", "host-b")
 
-    keys = get_settings().bootstrap_api_keys_list
-    if not keys:
-        pytest.skip("bootstrap API key required")
-    headers = {"X-EventFlow-API-Key": keys[0]}
+    # Test list endpoint
 
-    response = await client.get("/api/v1/workers", headers=headers)
+    response = await client.get("/api/v1/workers", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
     assert len(body) >= 2
@@ -36,16 +33,13 @@ async def test_list_workers_api(client, db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_get_worker_api(client, db: AsyncSession):
+async def test_get_worker_api(client, db: AsyncSession, auth_headers):
     service = WorkerService(db)
     worker = await service.register_worker("api-worker-single", "host-single")
 
-    keys = get_settings().bootstrap_api_keys_list
-    if not keys:
-        pytest.skip("bootstrap API key required")
-    headers = {"X-EventFlow-API-Key": keys[0]}
+    # Test get endpoint
 
-    response = await client.get(f"/api/v1/workers/{worker.id}", headers=headers)
+    response = await client.get(f"/api/v1/workers/{worker.id}", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
     assert body["worker_id"] == str(worker.id)

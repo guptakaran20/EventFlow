@@ -25,10 +25,10 @@ class Settings(BaseSettings):
     eventflow_internal_transport: TransportMode = TransportMode.LOCAL
 
     # PostgreSQL
-    database_url: str = "postgresql+asyncpg://eventflow:eventflow@localhost:5432/eventflow"
+    database_url: str
 
     # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str
     redis_stream_name: str = "eventflow:jobs"
     redis_consumer_group: str = "eventflow-workers"
     # "memory" (default, no Redis required) or "redis" (RedisStreamQueuePublisher)
@@ -46,13 +46,10 @@ class Settings(BaseSettings):
 
     # API key auth
     api_key_header_name: str = "X-EventFlow-API-Key"
-    # Comma-separated bootstrap API keys usable before the API key table/service
-    # is implemented in a later phase. Not for production use.
-    bootstrap_api_keys: str = ""
 
     # JWT Auth
-    jwt_access_secret_key: str = "development-super-secret-access-key"
-    jwt_refresh_secret_key: str = "development-super-secret-refresh-key"
+    jwt_access_secret_key: str
+    jwt_refresh_secret_key: str
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
@@ -63,10 +60,6 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
-
-    @property
-    def bootstrap_api_keys_list(self) -> list[str]:
-        return [key.strip() for key in self.bootstrap_api_keys.split(",") if key.strip()]
 
 
 @lru_cache
