@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { ExecutionResponse, ExecutionLogResponse } from "@/lib/types";
@@ -14,6 +14,7 @@ import { usePageReveal, useRowStagger } from "@/lib/reveal";
 export default function ExecutionDetailPage() {
   const params = useParams();
   const executionId = params.id as string;
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   // Wire up WebSocket for live updates
@@ -37,6 +38,16 @@ export default function ExecutionDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["execution", executionId] });
       queryClient.invalidateQueries({ queryKey: ["execution_logs", executionId] });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return api.delete(`/executions/${executionId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["executions"] });
+      router.push("/executions");
     }
   });
 
@@ -74,13 +85,27 @@ export default function ExecutionDetailPage() {
             {execution.id}
           </div>
         </div>
-        <div className="flex items-center gap-2 text-[11px] font-mono px-3 h-8 bg-surface border border-border">
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              isConnected ? "bg-foreground animate-pulse" : "bg-danger"
-            }`}
-          />
-          {isConnected ? "Live" : "Disconnected"}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-[11px] font-mono px-3 h-8 bg-surface border border-border">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isConnected ? "bg-foreground animate-pulse" : "bg-danger"
+              }`}
+            />
+            {isConnected ? "Live" : "Disconnected"}
+          </div>
+          <Button 
+            variant="danger" 
+            onClick={() => {
+              if (window.confirm("Are you sure you want to delete this execution?")) {
+                deleteMutation.mutate();
+              }
+            }}
+            disabled={deleteMutation.isPending}
+            className="h-8 text-xs"
+          >
+            Delete Execution
+          </Button>
         </div>
       </div>
 

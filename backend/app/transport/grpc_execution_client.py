@@ -98,7 +98,10 @@ class GrpcExecutionEngineClient:
     async def retry_node(
         self, execution_id: UUID, node_id: str, owner_api_key_id: UUID
     ) -> NodeExecutionDTO:
-        raise NotImplementedError("RetryNode gRPC stub not generated yet")
+        raise NotImplementedError("Retry via gRPC not implemented yet")
+
+    async def delete_execution(self, execution_id: UUID, owner_api_key_id: UUID) -> None:
+        raise NotImplementedError("Delete execution via gRPC not implemented yet")
 
     def _map_execution(self, msg: pb.ExecutionDTO) -> ExecutionDTO:
         return ExecutionDTO(

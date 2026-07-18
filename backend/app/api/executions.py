@@ -58,6 +58,18 @@ async def get_execution(
     return ExecutionResponse.model_validate(execution)
 
 
+@router.delete("/{execution_id}", status_code=204)
+async def delete_execution(
+    execution_id: uuid.UUID,
+    owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
+    client: Annotated[ExecutionEngineClient, Depends(get_execution_engine_client)],
+):
+    try:
+        await client.delete_execution(execution_id, owner_id)
+    except AppError as e:
+        raise e
+
+
 @router.get("/{execution_id}/nodes", response_model=list[NodeExecutionResponse])
 async def get_execution_nodes(
     execution_id: uuid.UUID,

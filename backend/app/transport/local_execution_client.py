@@ -80,3 +80,6 @@ class LocalExecutionEngineClient:
         self, execution_id: UUID, node_id: str, owner_api_key_id: UUID
     ) -> NodeExecutionDTO:
         return await self.engine.retry_node(execution_id, node_id, owner_api_key_id)
+
+    async def delete_execution(self, execution_id: UUID, owner_api_key_id: UUID) -> None:
+        await self.engine.delete_execution(execution_id, owner_api_key_id)

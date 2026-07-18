@@ -295,3 +295,24 @@ class ExecutionEngine:
 
     async def transition_node(self, command: TransitionNodeCommand) -> NodeExecutionDTO:
         raise NotImplementedError("Not required for Phase 5")
+
+    async def delete_execution(self, execution_id: uuid.UUID, owner_api_key_id: uuid.UUID) -> None:
+        stmt = (
+            select(Execution)
+            .join(Workflow, Workflow.id == Execution.workflow_id)
+            .where(Execution.id == execution_id, Workflow.owner_api_key_id == owner_api_key_id)
+        )
+        result = await self.session.execute(stmt)
+        execution = result.scalar_one_or_none()
+        if not execution:
+            raise AppError("Execution not found", code="not_found", status_code=404)
+        
+        # DeadLetterJobs reference NodeExecutions. 
+        # Since NodeExecutions are cascade deleted by SQLAlchemy on Execution deletion,
+        # we should manually delete associated DeadLetterJobs first.
+        from sqlalchemy import delete
+        dlq_stmt = delete(DeadLetterJob).where(DeadLetterJob.execution_id == execution_id)
+        await self.session.execute(dlq_stmt)
+
+        await self.session.delete(execution)
+        await self.session.commit()
