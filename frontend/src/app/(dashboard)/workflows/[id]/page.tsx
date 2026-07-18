@@ -28,6 +28,12 @@ const DEFAULT_WORKFLOW = {
 const SCHEMA_TEMPLATE = `{
   "name": "string (required)",
   "description": "string (optional)",
+  "default_retry_policy": { // Optional
+    "max_attempts": "integer (optional, default 3, 1-10)",
+    "initial_interval": "integer (optional, default 1)",
+    "max_interval": "integer (optional, default 3600)",
+    "backoff_multiplier": "float (optional, default 2.0)"
+  },
   "nodes": [
     {
       "id": "string (required, must be unique)",
@@ -35,6 +41,12 @@ const SCHEMA_TEMPLATE = `{
       "name": "string (optional)",
       "config": {
         // Any node-specific configuration
+      },
+      "retry_policy": { // Optional, overrides default
+        "max_attempts": "integer",
+        "initial_interval": "integer",
+        "max_interval": "integer",
+        "backoff_multiplier": "float"
       }
     }
   ],
@@ -68,12 +80,14 @@ export default function WorkflowEditorPage() {
 
   useEffect(() => {
     if (workflow) {
-      // In a real app we'd fetch the exact version definition.
-      // But /workflows/{id} doesn't return the definition in MVP. 
-      // We'd need an endpoint like GET /workflows/{id}/versions/{v} to get the JSON.
-      // Actually, wait, does MVP have an endpoint for fetching a version's definition?
-      // I'll check what backend routes exist later. For now, we will leave it as placeholder JSON
-      // if it's not new, just to show the UI.
+      if (workflow.versions && workflow.versions.length > 0) {
+        const latestVersion = [...workflow.versions].sort((a, b) => b.version_number - a.version_number)[0];
+        if (latestVersion.definition) {
+          setJson(JSON.stringify(latestVersion.definition, null, 2));
+          return;
+        }
+      }
+      // Fallback if no definition
       setJson(JSON.stringify({ 
         name: workflow.name, 
         description: workflow.description, 

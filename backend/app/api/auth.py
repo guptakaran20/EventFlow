@@ -57,14 +57,16 @@ async def login_for_access_token(
         key="eventflow_jwt",
         value=access_token,
         httponly=True,
-        samesite="lax",
+        samesite="none",
+        secure=True,
         max_age=settings.jwt_access_token_expire_minutes * 60,
     )
     response.set_cookie(
         key="eventflow_refresh",
         value=refresh_token,
         httponly=True,
-        samesite="lax",
+        samesite="none",
+        secure=True,
         max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
     )
     
@@ -100,14 +102,16 @@ async def refresh_access_token(
             key="eventflow_jwt",
             value=access_token,
             httponly=True,
-            samesite="lax",
+            samesite="none",
+            secure=True,
             max_age=settings.jwt_access_token_expire_minutes * 60,
         )
         response.set_cookie(
             key="eventflow_refresh",
             value=refresh_token,
             httponly=True,
-            samesite="lax",
+            samesite="none",
+            secure=True,
             max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
         )
         
@@ -121,8 +125,8 @@ async def refresh_access_token(
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("eventflow_jwt")
-    response.delete_cookie("eventflow_refresh")
+    response.delete_cookie("eventflow_jwt", httponly=True, samesite="none", secure=True)
+    response.delete_cookie("eventflow_refresh", httponly=True, samesite="none", secure=True)
     return {"message": "Logged out successfully"}
 
 

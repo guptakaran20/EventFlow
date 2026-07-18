@@ -47,6 +47,7 @@ async def create_workflow(
         version_number=version.version_number,
         checksum=version.checksum,
         created_at=version.created_at,
+        definition=version.definition,
     )
 
 
@@ -90,6 +91,7 @@ async def get_workflow(
             version_number=v.version_number,
             checksum=v.checksum,
             created_at=v.created_at,
+            definition=v.definition,
         )
         for v in workflow.versions
     ]
@@ -124,4 +126,5 @@ async def create_workflow_version(
         version_number=version.version_number,
         checksum=version.checksum,
         created_at=version.created_at,
+        definition=version.definition,
     )

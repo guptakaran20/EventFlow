@@ -29,26 +29,26 @@ export function useExecutionWebSocket(executionId: string) {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         if (data.type === "execution_updated") {
           queryClient.setQueryData<ExecutionResponse>(["execution", executionId], (old) => {
             if (!old) return old;
             return { ...old, status: data.data.status };
           });
         }
-        
+
         if (data.type === "node_updated") {
           queryClient.setQueryData<ExecutionResponse>(["execution", executionId], (old) => {
             if (!old) return old;
-            const updatedNodes = old.node_executions.map(node => 
-              node.node_id === data.data.node_id 
-                ? { ...node, status: data.data.status, attempt: data.data.attempt || node.attempt } 
+            const updatedNodes = old.node_executions.map(node =>
+              node.node_id === data.data.node_id
+                ? { ...node, status: data.data.status, attempt: data.data.attempt || node.attempt }
                 : node
             );
             return { ...old, node_executions: updatedNodes };
           });
         }
-        
+
         if (data.type === "execution_log") {
           queryClient.setQueryData<ExecutionLogResponse[]>(["execution_logs", executionId], (old) => {
             // we need to construct a pseudo log response object

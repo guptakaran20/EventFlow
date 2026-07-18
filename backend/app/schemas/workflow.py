@@ -54,6 +54,7 @@ class WorkflowVersionResponse(BaseModel):
     version_number: int
     checksum: str
     created_at: datetime
+    definition: dict[str, Any] | None = None
 
 
 class WorkflowDetailResponse(WorkflowResponse):

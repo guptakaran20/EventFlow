@@ -55,7 +55,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const isValid = await api.login(apiKey);
+      const isValid = await api.login(apiKey.trim());
       if (isValid) {
         router.push("/dashboard");
       } else {

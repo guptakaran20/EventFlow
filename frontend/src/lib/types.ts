@@ -42,6 +42,7 @@ export type WorkflowVersionResponse = {
   version_number: number;
   checksum: string;
   created_at: string;
+  definition?: any;
 };
 
 export type WorkflowDetailResponse = {
