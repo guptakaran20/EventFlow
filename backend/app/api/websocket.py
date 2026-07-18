@@ -47,7 +47,7 @@ async def _authorize(execution_id: uuid.UUID, token: str | None) -> bool:
 
 @router.websocket("/executions/{execution_id}")
 async def execution_updates(websocket: WebSocket, execution_id: uuid.UUID) -> None:
-    token = websocket.query_params.get("token")
+    token = websocket.cookies.get("eventflow_jwt")
 
     if not await _authorize(execution_id, token):
         # 1008 = policy violation. Reject BEFORE accept for unauthorized clients.

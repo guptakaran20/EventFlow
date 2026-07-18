@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -117,10 +117,17 @@ async def get_current_principal_from_token(token: str | None) -> AuthenticatedPr
         raise AppError("Invalid token", code="invalid_token", status_code=401)
 
 
+async def get_token(
+    request: Request,
+    bearer_token: Annotated[str | None, Depends(_oauth2_scheme)]
+) -> str | None:
+    return request.cookies.get("eventflow_jwt") or bearer_token
+
+
 async def require_api_key(
-    token: Annotated[str | None, Depends(_oauth2_scheme)],
+    token: Annotated[str | None, Depends(get_token)],
 ) -> AuthenticatedPrincipal:
-    """Validate the Bearer token. Returns an AuthenticatedPrincipal."""
+    """Validate the token. Returns an AuthenticatedPrincipal."""
     return await get_current_principal_from_token(token)
 
 

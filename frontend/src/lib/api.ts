@@ -8,34 +8,24 @@ export class ApiError extends Error {
 }
 
 function getAuthHeader() {
-  const token = typeof window !== "undefined" ? localStorage.getItem("eventflow_jwt") : null;
-  if (!token) {
-    throw new Error("No JWT token found in localStorage");
-  }
-  return { "Authorization": `Bearer ${token}` };
+  return {};
 }
 
-async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = typeof window !== "undefined" ? localStorage.getItem("eventflow_refresh") : null;
-  if (!refreshToken) return null;
-
+async function refreshAccessToken(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken })
+      credentials: "include"
     });
     
     if (response.ok) {
-      const data = await response.json();
-      localStorage.setItem("eventflow_jwt", data.access_token);
-      localStorage.setItem("eventflow_refresh", data.refresh_token);
-      return data.access_token;
+      return true;
     }
   } catch (e) {
     // Ignore refresh errors
   }
-  return null;
+  return false;
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -47,22 +37,22 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   let response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
+    credentials: "include",
     headers,
   });
 
   // Auto-refresh token on 401
-  if (response.status === 401) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
-      headers["Authorization"] = `Bearer ${newToken}`;
+  if (response.status === 401 && endpoint !== "/auth/token" && endpoint !== "/auth/refresh") {
+    const success = await refreshAccessToken();
+    if (success) {
       response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
+        credentials: "include",
         headers,
       });
     } else {
       // If refresh fails, log out
-      localStorage.removeItem("eventflow_jwt");
-      localStorage.removeItem("eventflow_refresh");
+      localStorage.removeItem("eventflow_auth_status");
       window.location.href = "/login";
     }
   }
@@ -112,16 +102,26 @@ export const api = {
     const response = await fetch(`${API_BASE_URL}/auth/token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ api_key: apiKey })
     });
     
     if (response.ok) {
-      const data = await response.json();
-      localStorage.setItem("eventflow_jwt", data.access_token);
-      localStorage.setItem("eventflow_refresh", data.refresh_token);
+      localStorage.setItem("eventflow_auth_status", "1");
       return true;
     }
     return false;
+  },
+
+  logout: async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include"
+      });
+    } catch (e) {}
+    localStorage.removeItem("eventflow_auth_status");
+    window.location.href = "/login";
   },
 
   // Get current user info

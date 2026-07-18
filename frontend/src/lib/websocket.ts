@@ -10,13 +10,10 @@ export function useExecutionWebSocket(executionId: string) {
   useEffect(() => {
     if (!executionId) return;
 
-    const token = localStorage.getItem("eventflow_jwt");
-    if (!token) return;
-
-    // Use ws:// or wss:// based on current protocol
+    // Cookies are automatically sent via the browser
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = process.env.NEXT_PUBLIC_API_URL?.replace("http://", "").replace("https://", "")?.replace("/api/v1", "") || "localhost:8000";
-    const wsUrl = `${protocol}//${host}/api/v1/ws/executions/${executionId}?token=${token}`;
+    const wsUrl = `${protocol}//${host}/api/v1/ws/executions/${executionId}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;

@@ -46,7 +46,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
     if (me?.raw_key) {
       setApiKey(me.raw_key);
     } else {
-      setApiKey(localStorage.getItem("eventflow_jwt")); // fallback to token or null while loading
+      setApiKey(localStorage.getItem("eventflow_auth_status") ? "active" : null); // fallback to token or null while loading
     }
   }, [me]);
 
@@ -59,14 +59,12 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
 
   const online = isSuccess ? true : isError ? false : null;
 
-  const handleLogout = () => {
-    localStorage.removeItem("eventflow_jwt");
-    localStorage.removeItem("eventflow_refresh");
-    router.push("/login");
+  const handleLogout = async () => {
+    await api.logout();
   };
 
   const crumbs = crumbsFor(pathname);
-  const maskedKey = apiKey
+  const maskedKey = apiKey && apiKey !== "active"
     ? `${apiKey.slice(0, 4)}${"•".repeat(6)}${apiKey.slice(-3)}`
     : "";
 
