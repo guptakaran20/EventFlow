@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Newsreader, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/components/theme";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -46,6 +47,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <Providers>{children}</Providers>
+          <Toaster theme="system" position="top-center" />
         </ThemeProvider>
       </body>
     </html>

@@ -18,6 +18,12 @@ export default function LoginPage() {
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    if (localStorage.getItem("eventflow_auth_status")) {
+      router.push("/dashboard");
+    }
+  }, [router]);
+
   useGSAP(
     () => {
       const mm = gsap.matchMedia();

@@ -87,7 +87,7 @@ export default function DLQPage() {
                       {job.execution_id.substring(0, 8)}…
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-xs text-foreground-muted max-w-[240px] truncate">
+                  <td className="px-4 py-3 text-xs text-foreground-muted max-w-[240px] truncate" title={job.reason}>
                     {job.reason}
                   </td>
                   <td className="px-4 py-3 text-xs font-mono">{job.attempts}</td>

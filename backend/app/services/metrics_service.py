@@ -61,27 +61,38 @@ class MetricsService:
                 DeadLetterJob.resolved_at.is_(None),
             )
         )
-        workers_stmt = select(Worker.status, func.count()).group_by(Worker.status)
-
         active_executions = (await self._db.execute(active_executions_stmt)).scalar_one()
         node_status_counts = dict((await self._db.execute(node_status_stmt)).all())
         dead_letter_jobs = (await self._db.execute(dlq_stmt)).scalar_one()
-        worker_status_counts = dict((await self._db.execute(workers_stmt)).all())
-
         queue_depth = await self._get_queue_depth()
-
-        workers = sum(worker_status_counts.values())
-        active_workers = sum(
-            count
-            for status, count in worker_status_counts.items()
-            if status in ACTIVE_WORKER_STATUSES
-        )
+        
+        from datetime import datetime, UTC
+        now = datetime.now(UTC)
+        
+        # worker_status_counts in DB just groups by status, but doesn't check last_heartbeat.
+        # So instead of a simple group_by, we fetch all workers and calculate in python.
+        workers_stmt = select(Worker)
+        workers_list = (await self._db.execute(workers_stmt)).scalars().all()
+        
+        workers_count = len(workers_list)
+        active_workers = 0
+        for w in workers_list:
+            if w.status == WorkerStatus.OFFLINE:
+                continue
+            is_stale = False
+            if w.last_heartbeat_at:
+                age = (now - w.last_heartbeat_at.replace(tzinfo=UTC)).total_seconds()
+                if age > 30:
+                    is_stale = True
+            
+            if not is_stale and w.status in ACTIVE_WORKER_STATUSES:
+                active_workers += 1
 
         return MetricsSummaryResponse(
             active_executions=active_executions,
             queued_nodes=node_status_counts.get(NodeExecutionStatus.QUEUED, 0),
             running_nodes=node_status_counts.get(NodeExecutionStatus.RUNNING, 0),
-            workers=workers,
+            workers=workers_count,
             active_workers=active_workers,
             queue_depth=queue_depth,
             dead_letter_jobs=dead_letter_jobs,

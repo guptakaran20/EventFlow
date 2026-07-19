@@ -44,7 +44,7 @@ export default function DashboardLayout({
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar onMenu={() => setNavOpen(true)} />
         <main className="flex-1 overflow-auto bg-background">
-          <div className="max-w-6xl mx-auto px-5 md:px-8 lg:px-10 py-8 md:py-10 h-full">
+          <div className="max-w-6xl mx-auto px-5 md:px-8 lg:px-10 py-8 md:py-10 min-h-full">
             {children}
           </div>
         </main>

@@ -36,7 +36,7 @@ export function ExecutorNode({ data, selected }: NodeProps<ExecutorFlowNode>) {
     <div
       data-selected={selected ? "true" : "false"}
       className={clsx(
-        "dag-node min-w-[184px] rounded-xl bg-surface/90 backdrop-blur-sm border flex flex-col overflow-hidden",
+        "dag-node w-[260px] rounded-xl bg-surface/90 backdrop-blur-sm border flex flex-col overflow-hidden",
         selected ? "border-transparent" : "border-border",
         data.isInvalid && "!border-danger"
       )}

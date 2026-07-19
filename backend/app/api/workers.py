@@ -29,3 +29,12 @@ async def get_worker(
 ) -> WorkerResponse:
     worker = await service.require_worker(worker_id)
     return WorkerResponse.from_worker(worker)
+
+@router.post("/spawn", status_code=202)
+async def spawn_worker(
+    _: Annotated[object, Depends(require_api_key)],
+):
+    import asyncio
+    from app.worker.background import start_background_worker
+    asyncio.create_task(start_background_worker())
+    return {"message": "Spawned new worker in background"}

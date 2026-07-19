@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { WorkerResponse } from "@/lib/types";
 import { Icons, StatusIcon } from "@/components/icons";
-import { PageHeader, Table, Th, EmptyState } from "@/components/ui";
+import { PageHeader, Table, Th, EmptyState, Button } from "@/components/ui";
 import { formatDistanceToNow } from "date-fns";
 import { usePageReveal, useRowStagger } from "@/lib/reveal";
 
@@ -16,17 +16,36 @@ export default function WorkersPage() {
     refetchInterval: 5000,
   });
 
+  const queryClient = useQueryClient();
+
+  const spawnMutation = useMutation({
+    mutationFn: async () => {
+      return api.post("/workers/spawn", {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workers"] });
+    },
+  });
+
   const root = usePageReveal<HTMLDivElement>();
   const rowsKey = workers?.map((w) => w.worker_id).join(",");
   const tbodyScope = useRowStagger<HTMLTableSectionElement>(rowsKey, "[data-row]");
 
   return (
     <div ref={root} className="space-y-8">
-      <div data-reveal-head>
+      <div data-reveal-head className="flex justify-between items-start gap-4 flex-wrap">
         <PageHeader
           title="Workers"
           description="Distributed worker instances consuming and executing workflow nodes."
         />
+        <Button
+          variant="primary"
+          onClick={() => spawnMutation.mutate()}
+          disabled={spawnMutation.isPending}
+          className="h-9 px-4 mt-2"
+        >
+          {spawnMutation.isPending ? "Spawning..." : "Spawn Worker"}
+        </Button>
       </div>
 
       {error ? (

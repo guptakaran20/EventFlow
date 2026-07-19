@@ -24,8 +24,7 @@ function crumbsFor(pathname: string): { label: string; href: string }[] {
   const rest = pathname.slice(base.length).split("/").filter(Boolean);
   if (rest.length) {
     const id = rest[rest.length - 1];
-    const short = id.length > 12 ? `${id.slice(0, 8)}…` : id;
-    crumbs.push({ label: short, href: pathname });
+    crumbs.push({ label: id, href: pathname });
   }
   return crumbs;
 }

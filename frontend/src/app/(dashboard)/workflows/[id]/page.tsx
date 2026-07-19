@@ -172,7 +172,7 @@ export default function WorkflowEditorPage() {
               ? "Define nodes and edges as JSON, then save the first version."
               : `${workflow?.versions.length ?? 0} version${
                   workflow?.versions.length === 1 ? "" : "s"
-                } · ID ${workflow?.id?.slice(0, 8)}…`
+                } · ID ${workflow?.id}`
           }
           actions={
             <>

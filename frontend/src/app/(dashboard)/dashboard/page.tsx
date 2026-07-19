@@ -155,8 +155,8 @@ export default function DashboardPage() {
   const health: [string, number | undefined][] = [
     ["Running Nodes", metrics?.running_nodes],
     ["Queued Nodes", metrics?.queued_nodes],
-    ["Connected Workers", metrics?.workers],
-    ["Active Workers", metrics?.active_workers],
+    ["Total Workers (All-Time)", metrics?.workers],
+    ["Active Workers (Alive)", metrics?.active_workers],
   ];
 
   return (
@@ -171,7 +171,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2 text-xs text-foreground-muted font-mono border border-border bg-surface px-3 h-8">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          Live · refreshing 5s
+          Live · Refreshing every 5 seconds
         </div>
       </div>
 
@@ -185,7 +185,7 @@ export default function DashboardPage() {
         />
         <MetricTile
           label="Queue Depth"
-          value={metrics?.queue_depth}
+          value={metrics?.queued_nodes}
           loading={isLoading}
           hint="jobs waiting"
         />

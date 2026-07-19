@@ -65,11 +65,8 @@ export default function HomePage() {
   const root = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  React.useEffect(() => {
-    if (localStorage.getItem("eventflow_auth_status")) {
-      router.push("/dashboard");
-    }
-  }, [router]);
+  // Redirect removed: users can view homepage even if logged in.
+
 
   useGSAP(
     () => {
