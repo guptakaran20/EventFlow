@@ -20,12 +20,17 @@ export function usePageReveal<T extends HTMLElement = HTMLDivElement>(
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
         if (scope.current?.querySelector("[data-reveal-head]")) {
-          tl.from("[data-reveal-head]", { opacity: 0, y: 16, duration: 0.5 });
+          tl.fromTo(
+            "[data-reveal-head]", 
+            { opacity: 0, y: 16 }, 
+            { opacity: 1, y: 0, duration: 0.5, clearProps: "all" }
+          );
         }
         if (scope.current?.querySelector("[data-reveal]")) {
-          tl.from(
+          tl.fromTo(
             "[data-reveal]",
-            { opacity: 0, y: 20, duration: 0.5, stagger: 0.08 },
+            { opacity: 0, y: 20 },
+            { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, clearProps: "all" },
             "-=0.2"
           );
         }
@@ -52,13 +57,18 @@ export function useRowStagger<T extends HTMLElement = HTMLDivElement>(
     () => {
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(selector, {
-          opacity: 0,
-          x: -8,
-          duration: 0.4,
-          stagger: 0.04,
-          ease: "power1.out",
-        });
+        gsap.fromTo(
+          selector,
+          { opacity: 0, x: -8 },
+          {
+            opacity: 1,
+            x: 0,
+            duration: 0.4,
+            stagger: 0.04,
+            ease: "power1.out",
+            clearProps: "all"
+          }
+        );
       });
       return () => mm.revert();
     },

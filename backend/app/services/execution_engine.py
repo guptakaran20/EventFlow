@@ -110,6 +110,10 @@ class ExecutionEngine:
                     to_status=NodeExecutionStatus.QUEUED,
                 )
 
+        await self.session.commit()
+
+        for node_exec in node_executions:
+            if node_exec.node_id in root_nodes:
                 message_id = await self.queue_publisher.publish_node_execution(
                     execution_id=execution.id,
                     node_execution_id=node_exec.id,
@@ -266,6 +270,8 @@ class ExecutionEngine:
             dlq_job.resolved_at = datetime.now(UTC)
             dlq_job.resolution_note = "Manually retried via API"
 
+        await self.session.commit()
+
         # Republish to queue
         message_id = await self.queue_publisher.publish_node_execution(
             execution_id=execution.id,
@@ -276,8 +282,8 @@ class ExecutionEngine:
         )
         if message_id:
             node_exec.redis_message_id = message_id
+            await self.session.commit()
 
-        await self.session.commit()
         await flush_events(self.session)
 
         return NodeExecutionDTO(

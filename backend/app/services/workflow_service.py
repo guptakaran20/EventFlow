@@ -144,6 +144,21 @@ class WorkflowService:
 
         return version
 
+    async def delete_workflow(
+        self, workflow_id: uuid.UUID, owner_api_key_id: uuid.UUID
+    ) -> bool:
+        stmt = select(Workflow).where(
+            Workflow.id == workflow_id, Workflow.owner_api_key_id == owner_api_key_id
+        )
+        result = await self._db.execute(stmt)
+        workflow = result.scalar_one_or_none()
+        if not workflow:
+            return False
+
+        await self._db.delete(workflow)
+        await self._db.commit()
+        return True
+
 
 async def get_workflow_service(
     db: Annotated[AsyncSession, Depends(get_db_session)],

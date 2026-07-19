@@ -128,3 +128,16 @@ async def create_workflow_version(
         created_at=version.created_at,
         definition=version.definition,
     )
+
+
+@router.delete("/{workflow_id}", status_code=204)
+async def delete_workflow(
+    workflow_id: uuid.UUID,
+    owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
+    service: Annotated[WorkflowService, Depends(get_workflow_service)],
+) -> None:
+    deleted = await service.delete_workflow(workflow_id, owner_id)
+    if not deleted:
+        from app.core.errors import AppError
+        raise AppError("Workflow not found", code="not_found", status_code=404)
+

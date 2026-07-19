@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 import logging
 from collections.abc import Callable
 
@@ -114,6 +115,31 @@ async def process_job(
         logger.exception("executor raised for node_execution %s", node.id)
         result = ExecutorResult(success=False, error=str(exc))
 
+    # Serialize completion processing for this execution to prevent join-node race conditions.
+    await session.execute(
+        select(Execution).where(Execution.id == execution.id).with_for_update()
+    )
+
+    # Refresh node states since other concurrent branches may have completed during our execution.
+    all_node_execs_stmt = (
+        select(NodeExecution)
+        .where(NodeExecution.execution_id == execution.id)
+        .execution_options(populate_existing=True)
+    )
+    all_node_execs = (await session.execute(all_node_execs_stmt)).scalars().all()
+    node_exec_by_node_id = {ne.node_id: ne for ne in all_node_execs}
+    node = next(ne for ne in all_node_execs if ne.id == node.id)
+
+    if node.status != NodeExecutionStatus.RUNNING:
+        logger.info(
+            "Node %s is no longer RUNNING (found %s). Another worker likely completed it. Skipping.",
+            node.id,
+            node.status,
+        )
+        return
+
+    nodes_to_publish: list[NodeExecution] = []
+
     if result.success:
         node.output_payload = result.output
         await state_service.transition_node_status(
@@ -122,10 +148,9 @@ async def process_job(
             to_status=NodeExecutionStatus.SUCCEEDED,
         )
         node_succeeded(session, node.execution_id, node.id, node.node_id)
-        await _queue_downstream_nodes(
+        nodes_to_publish = await _queue_downstream_nodes(
             session,
             state_service,
-            queue_publisher,
             execution,
             definition,
             node_def,
@@ -141,7 +166,7 @@ async def process_job(
             to_status=NodeExecutionStatus.FAILED,
         )
         node_failed(session, node.execution_id, node.id, node.node_id, node.error_message)
-        await _handle_node_failure(session, state_service, queue_publisher, execution, node)
+        nodes_to_publish = await _handle_node_failure(session, state_service, execution, node)
 
     # Check if the entire execution is complete
     all_terminal = all(ne.status in TERMINAL_NODE_STATUSES for ne in all_node_execs)
@@ -160,16 +185,30 @@ async def process_job(
         )
 
     await session.commit()
+    
+    for n in nodes_to_publish:
+        message_id = await queue_publisher.publish_node_execution(
+            execution_id=execution.id,
+            node_execution_id=n.id,
+            workflow_version_id=execution.workflow_version_id,
+            node_id=n.node_id,
+            attempt=n.attempt,
+        )
+        if message_id:
+            n.redis_message_id = message_id
+            
+    await session.commit()
     await flush_events(session)
+
+
 
 
 async def _handle_node_failure(
     session: AsyncSession,
     state_service: StateTransitionService,
-    queue_publisher: QueuePublisher,
     execution: Execution,
     node: NodeExecution,
-) -> None:
+) -> list[NodeExecution]:
     """Retry the node if attempts remain, otherwise dead-letter it.
 
     MVP uses fixed (immediate) requeue instead of a sleeping backoff, so the
@@ -187,16 +226,7 @@ async def _handle_node_failure(
             to_status=NodeExecutionStatus.QUEUED,
         )
         retry_scheduled(session, execution.id, retried.id, retried.node_id, retried.attempt)
-        message_id = await queue_publisher.publish_node_execution(
-            execution_id=execution.id,
-            node_execution_id=retried.id,
-            workflow_version_id=execution.workflow_version_id,
-            node_id=retried.node_id,
-            attempt=retried.attempt,
-        )
-        if message_id:
-            retried.redis_message_id = message_id
-        return
+        return [retried]
 
     await state_service.transition_node_status(
         node_execution_id=node.id,
@@ -223,22 +253,25 @@ async def _handle_node_failure(
             from_status=ExecutionStatus.RUNNING,
             to_status=ExecutionStatus.FAILED,
         )
+        
+    return []
 
 
 async def _queue_downstream_nodes(
     session: AsyncSession,
     state_service: StateTransitionService,
-    queue_publisher: QueuePublisher,
     execution: Execution,
     definition: WorkflowDefinition,
     node_def: Node,
     node: NodeExecution,
     node_exec_by_node_id: dict[str, NodeExecution],
     result: ExecutorResult,
-) -> None:
+) -> list[NodeExecution]:
     children = [e.to_node for e in definition.edges if e.from_node == node.node_id]
     if not children:
-        return
+        return []
+
+    nodes_to_publish: list[NodeExecution] = []
 
     # Condition nodes select exactly one branch; the other becomes SKIPPED.
     skip_ids: set[str] = set()
@@ -283,15 +316,9 @@ async def _queue_downstream_nodes(
             from_status=NodeExecutionStatus.PENDING,
             to_status=NodeExecutionStatus.QUEUED,
         )
-        message_id = await queue_publisher.publish_node_execution(
-            execution_id=execution.id,
-            node_execution_id=queued.id,
-            workflow_version_id=execution.workflow_version_id,
-            node_id=queued.node_id,
-            attempt=queued.attempt,
-        )
-        if message_id:
-            queued.redis_message_id = message_id
+        nodes_to_publish.append(queued)
+        
+    return nodes_to_publish
 
 
 async def run_worker(
@@ -333,11 +360,13 @@ async def run_worker(
             continue
 
         for _stream_name, messages in response:
-            for message_id, fields in messages:
+            async def process_and_ack(message_id, fields):
                 job = deserialize_job_payload(fields)
                 current_job_id = str(job["node_execution_id"])
                 execution_id = job["execution_id"]
+                
                 if heartbeat is not None:
+                    # Note: When processing concurrently, the worker status will just reflect the last started job
                     await heartbeat.set_status(WorkerStatus.BUSY, current_job_id)
                     await broadcast_worker_updated(
                         execution_id,
@@ -351,8 +380,12 @@ async def run_worker(
 
                 await redis.xack(stream_name, consumer_group, message_id)
 
-                if heartbeat is not None:
-                    await heartbeat.set_status(WorkerStatus.IDLE)
-                    await broadcast_worker_updated(
-                        execution_id, heartbeat.worker_id, WorkerStatus.IDLE.value, None
-                    )
+            tasks = [process_and_ack(msg_id, fields) for msg_id, fields in messages]
+            await asyncio.gather(*tasks)
+
+            if heartbeat is not None:
+                await heartbeat.set_status(WorkerStatus.IDLE)
+                # Just use a dummy execution ID to broadcast the IDLE state
+                await broadcast_worker_updated(
+                    uuid.uuid4(), heartbeat.worker_id, WorkerStatus.IDLE.value, None
+                )

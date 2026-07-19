@@ -10,6 +10,7 @@ import { useExecutionWebSocket } from "@/lib/websocket";
 import { Button, Badge } from "@/components/ui";
 import { format } from "date-fns";
 import { usePageReveal, useRowStagger } from "@/lib/reveal";
+import { toast } from "sonner";
 
 export default function ExecutionDetailPage() {
   const params = useParams();
@@ -97,9 +98,16 @@ export default function ExecutionDetailPage() {
           <Button 
             variant="danger" 
             onClick={() => {
-              if (window.confirm("Are you sure you want to delete this execution?")) {
-                deleteMutation.mutate();
-              }
+              toast("Are you sure you want to delete this execution?", {
+                action: {
+                  label: "Delete",
+                  onClick: () => deleteMutation.mutate(),
+                },
+                cancel: {
+                  label: "Cancel",
+                  onClick: () => {},
+                },
+              });
             }}
             disabled={deleteMutation.isPending}
             className="h-8 text-xs"

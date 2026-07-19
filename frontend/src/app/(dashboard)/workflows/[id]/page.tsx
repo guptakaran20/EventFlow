@@ -10,6 +10,7 @@ import { Button, PageHeader } from "@/components/ui";
 import { format } from "date-fns";
 import { ReactFlowEditor } from "@/components/workflows/ReactFlowEditor";
 import { usePageReveal } from "@/lib/reveal";
+import { toast } from "sonner";
 
 const DEFAULT_WORKFLOW = {
   name: "New Workflow",
@@ -136,6 +137,19 @@ export default function WorkflowEditorPage() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return api.delete(`/workflows/${params.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workflows"] });
+      router.push("/workflows");
+    },
+    onError: (err: Error) => {
+      setValidationError(err.message);
+    }
+  });
+
   const handleSave = () => {
     try {
       const parsed = JSON.parse(json);
@@ -149,6 +163,20 @@ export default function WorkflowEditorPage() {
     if (!workflow || workflow.versions.length === 0) return;
     const latestVersion = workflow.versions.sort((a, b) => b.version_number - a.version_number)[0];
     startExecutionMutation.mutate(latestVersion.id);
+  };
+
+  const handleDelete = () => {
+    toast("Are you sure you want to delete this workflow and all its versions?", {
+      description: "This action cannot be undone.",
+      action: {
+        label: "Delete",
+        onClick: () => deleteMutation.mutate(),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => {},
+      },
+    });
   };
 
   const root = usePageReveal<HTMLDivElement>([isLoading, isNew]);
@@ -180,14 +208,24 @@ export default function WorkflowEditorPage() {
                 {saveMutation.isPending ? "Saving…" : "Save Version"}
               </Button>
               {!isNew && (
-                <Button
-                  variant="primary"
-                  onClick={handleStart}
-                  disabled={startExecutionMutation.isPending}
-                >
-                  <Icons.Play className="w-3.5 h-3.5 fill-current" />
-                  {startExecutionMutation.isPending ? "Starting…" : "Run"}
-                </Button>
+                <>
+                  <Button
+                    variant="danger"
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Icons.Trash className="w-3.5 h-3.5 fill-current" />
+                    {deleteMutation.isPending ? "Deleting…" : "Delete"}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleStart}
+                    disabled={startExecutionMutation.isPending}
+                  >
+                    <Icons.Play className="w-3.5 h-3.5 fill-current" />
+                    {startExecutionMutation.isPending ? "Starting…" : "Run"}
+                  </Button>
+                </>
               )}
             </>
           }
