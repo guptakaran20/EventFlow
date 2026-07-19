@@ -1,6 +1,7 @@
 from uuid import UUID
 
 import grpc
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.struct_pb2 import Struct
 
 from app.transport.contracts import (
@@ -66,7 +67,17 @@ class GrpcExecutionEngineClient:
         limit: int = 50,
         offset: int = 0,
     ) -> list[ExecutionDTO]:
-        raise NotImplementedError("ListExecutions gRPC stub not generated yet")
+        stub = await self._get_stub()
+        req = pb.ListExecutionsRequest(
+            owner_api_key_id=str(owner_api_key_id),
+            limit=limit,
+            offset=offset,
+        )
+        if status:
+            req.status = status
+            
+        resp = await stub.ListExecutions(req)
+        return [self._map_execution(e) for e in resp.executions]
 
     async def get_node_executions(
         self, execution_id: UUID, owner_api_key_id: UUID
@@ -98,10 +109,22 @@ class GrpcExecutionEngineClient:
     async def retry_node(
         self, execution_id: UUID, node_id: str, owner_api_key_id: UUID
     ) -> NodeExecutionDTO:
-        raise NotImplementedError("Retry via gRPC not implemented yet")
+        stub = await self._get_stub()
+        req = pb.RetryNodeRequest(
+            execution_id=str(execution_id),
+            node_id=node_id,
+            owner_api_key_id=str(owner_api_key_id),
+        )
+        resp = await stub.RetryNode(req)
+        return self._map_node_execution(resp)
 
     async def delete_execution(self, execution_id: UUID, owner_api_key_id: UUID) -> None:
-        raise NotImplementedError("Delete execution via gRPC not implemented yet")
+        stub = await self._get_stub()
+        req = pb.DeleteExecutionRequest(
+            execution_id=str(execution_id),
+            owner_api_key_id=str(owner_api_key_id),
+        )
+        await stub.DeleteExecution(req)
 
     def _map_execution(self, msg: pb.ExecutionDTO) -> ExecutionDTO:
         return ExecutionDTO(
@@ -109,7 +132,7 @@ class GrpcExecutionEngineClient:
             workflow_id=UUID(msg.workflow_id),
             workflow_version_id=UUID(msg.workflow_version_id),
             status=msg.status,
-            input_payload=dict(msg.input_payload.items()) if msg.input_payload else None,
+            input_payload=MessageToDict(msg.input_payload) if msg.HasField("input_payload") else None,
             error_message=msg.error_message if msg.HasField("error_message") else None,
             node_executions=[self._map_node_execution(n) for n in msg.node_executions],
         )
@@ -123,7 +146,7 @@ class GrpcExecutionEngineClient:
             status=msg.status,
             attempt=msg.attempt,
             max_attempts=msg.max_attempts,
-            input_payload=dict(msg.input_payload.items()) if msg.input_payload else None,
-            output_payload=dict(msg.output_payload.items()) if msg.output_payload else None,
+            input_payload=MessageToDict(msg.input_payload) if msg.HasField("input_payload") else None,
+            output_payload=MessageToDict(msg.output_payload) if msg.HasField("output_payload") else None,
             error_message=msg.error_message if msg.HasField("error_message") else None,
         )

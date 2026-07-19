@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from eventflow import execution_engine_pb2 as eventflow_dot_execution__engine__pb2
+from . import execution_engine_pb2 as eventflow_dot_execution__engine__pb2
 
 GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
@@ -49,10 +49,25 @@ class ExecutionEngineServiceStub:
                 request_serializer=eventflow_dot_execution__engine__pb2.GetNodeExecutionsRequest.SerializeToString,
                 response_deserializer=eventflow_dot_execution__engine__pb2.NodeExecutionListDTO.FromString,
                 _registered_method=True)
+        self.ListExecutions = channel.unary_unary(
+                '/eventflow.ExecutionEngineService/ListExecutions',
+                request_serializer=eventflow_dot_execution__engine__pb2.ListExecutionsRequest.SerializeToString,
+                response_deserializer=eventflow_dot_execution__engine__pb2.ExecutionListDTO.FromString,
+                _registered_method=True)
         self.TransitionNode = channel.unary_unary(
                 '/eventflow.ExecutionEngineService/TransitionNode',
                 request_serializer=eventflow_dot_execution__engine__pb2.TransitionNodeRequest.SerializeToString,
                 response_deserializer=eventflow_dot_execution__engine__pb2.NodeExecutionDTO.FromString,
+                _registered_method=True)
+        self.RetryNode = channel.unary_unary(
+                '/eventflow.ExecutionEngineService/RetryNode',
+                request_serializer=eventflow_dot_execution__engine__pb2.RetryNodeRequest.SerializeToString,
+                response_deserializer=eventflow_dot_execution__engine__pb2.NodeExecutionDTO.FromString,
+                _registered_method=True)
+        self.DeleteExecution = channel.unary_unary(
+                '/eventflow.ExecutionEngineService/DeleteExecution',
+                request_serializer=eventflow_dot_execution__engine__pb2.DeleteExecutionRequest.SerializeToString,
+                response_deserializer=eventflow_dot_execution__engine__pb2.DeleteExecutionResponse.FromString,
                 _registered_method=True)
 
 
@@ -77,7 +92,25 @@ class ExecutionEngineServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListExecutions(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def TransitionNode(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RetryNode(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteExecution(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -101,10 +134,25 @@ def add_ExecutionEngineServiceServicer_to_server(servicer, server):
                     request_deserializer=eventflow_dot_execution__engine__pb2.GetNodeExecutionsRequest.FromString,
                     response_serializer=eventflow_dot_execution__engine__pb2.NodeExecutionListDTO.SerializeToString,
             ),
+            'ListExecutions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListExecutions,
+                    request_deserializer=eventflow_dot_execution__engine__pb2.ListExecutionsRequest.FromString,
+                    response_serializer=eventflow_dot_execution__engine__pb2.ExecutionListDTO.SerializeToString,
+            ),
             'TransitionNode': grpc.unary_unary_rpc_method_handler(
                     servicer.TransitionNode,
                     request_deserializer=eventflow_dot_execution__engine__pb2.TransitionNodeRequest.FromString,
                     response_serializer=eventflow_dot_execution__engine__pb2.NodeExecutionDTO.SerializeToString,
+            ),
+            'RetryNode': grpc.unary_unary_rpc_method_handler(
+                    servicer.RetryNode,
+                    request_deserializer=eventflow_dot_execution__engine__pb2.RetryNodeRequest.FromString,
+                    response_serializer=eventflow_dot_execution__engine__pb2.NodeExecutionDTO.SerializeToString,
+            ),
+            'DeleteExecution': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteExecution,
+                    request_deserializer=eventflow_dot_execution__engine__pb2.DeleteExecutionRequest.FromString,
+                    response_serializer=eventflow_dot_execution__engine__pb2.DeleteExecutionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -199,6 +247,33 @@ class ExecutionEngineService:
             _registered_method=True)
 
     @staticmethod
+    def ListExecutions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/eventflow.ExecutionEngineService/ListExecutions',
+            eventflow_dot_execution__engine__pb2.ListExecutionsRequest.SerializeToString,
+            eventflow_dot_execution__engine__pb2.ExecutionListDTO.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def TransitionNode(request,
             target,
             options=(),
@@ -215,6 +290,60 @@ class ExecutionEngineService:
             '/eventflow.ExecutionEngineService/TransitionNode',
             eventflow_dot_execution__engine__pb2.TransitionNodeRequest.SerializeToString,
             eventflow_dot_execution__engine__pb2.NodeExecutionDTO.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RetryNode(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/eventflow.ExecutionEngineService/RetryNode',
+            eventflow_dot_execution__engine__pb2.RetryNodeRequest.SerializeToString,
+            eventflow_dot_execution__engine__pb2.NodeExecutionDTO.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteExecution(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/eventflow.ExecutionEngineService/DeleteExecution',
+            eventflow_dot_execution__engine__pb2.DeleteExecutionRequest.SerializeToString,
+            eventflow_dot_execution__engine__pb2.DeleteExecutionResponse.FromString,
             options,
             channel_credentials,
             insecure,

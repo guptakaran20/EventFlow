@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from eventflow import worker_control_pb2 as eventflow_dot_worker__control__pb2
+from . import worker_control_pb2 as eventflow_dot_worker__control__pb2
 
 GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__

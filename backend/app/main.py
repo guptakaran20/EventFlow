@@ -38,7 +38,17 @@ from app.worker.background import start_background_worker
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(_redis_pubsub_listener())
     worker_task = asyncio.create_task(start_background_worker())
+    
+    settings = get_settings()
+    if settings.eventflow_internal_transport == "grpc":
+        from app.transport.grpc_server import start_grpc_server, stop_grpc_server
+        await start_grpc_server()
+
     yield
+
+    if settings.eventflow_internal_transport == "grpc":
+        await stop_grpc_server()
+        
     task.cancel()
     worker_task.cancel()
     try:

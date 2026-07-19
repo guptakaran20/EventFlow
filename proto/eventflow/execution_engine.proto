@@ -8,7 +8,10 @@ service ExecutionEngineService {
   rpc StartExecution(StartExecutionRequest) returns (ExecutionDTO);
   rpc GetExecution(GetExecutionRequest) returns (ExecutionDTO);
   rpc GetNodeExecutions(GetNodeExecutionsRequest) returns (NodeExecutionListDTO);
+  rpc ListExecutions(ListExecutionsRequest) returns (ExecutionListDTO);
   rpc TransitionNode(TransitionNodeRequest) returns (NodeExecutionDTO);
+  rpc RetryNode(RetryNodeRequest) returns (NodeExecutionDTO);
+  rpc DeleteExecution(DeleteExecutionRequest) returns (DeleteExecutionResponse);
 }
 
 message StartExecutionRequest {
@@ -22,9 +25,30 @@ message GetExecutionRequest {
   string owner_api_key_id = 2;
 }
 
+message ListExecutionsRequest {
+  string owner_api_key_id = 1;
+  optional string status = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
 message GetNodeExecutionsRequest {
   string execution_id = 1;
   string owner_api_key_id = 2;
+}
+
+message RetryNodeRequest {
+  string execution_id = 1;
+  string node_id = 2;
+  string owner_api_key_id = 3;
+}
+
+message DeleteExecutionRequest {
+  string execution_id = 1;
+  string owner_api_key_id = 2;
+}
+
+message DeleteExecutionResponse {
 }
 
 message TransitionNodeRequest {
@@ -60,4 +84,8 @@ message ExecutionDTO {
 
 message NodeExecutionListDTO {
   repeated NodeExecutionDTO node_executions = 1;
+}
+
+message ExecutionListDTO {
+  repeated ExecutionDTO executions = 1;
 }
