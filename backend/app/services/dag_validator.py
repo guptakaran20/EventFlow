@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from typing import TypedDict
+from typing_extensions import TypedDict
 
 from app.core.errors import AppError
 from app.schemas.workflow import WorkflowDefinition
