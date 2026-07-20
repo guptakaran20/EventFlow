@@ -1,191 +1,133 @@
+"""Seed the database with ready-to-run demo workflows.
+
+Usage:
+    python scripts/seed_demo_workflows.py
+
+Creates a dedicated API key to own the demo workflows and prints its raw
+value once (store it to call the API). Re-running creates a fresh owner key
+and a new set of demo workflows.
+"""
+
 import asyncio
 import logging
-from uuid import UUID
+import sys
+from pathlib import Path
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.core.config import get_settings
-from app.schemas.workflow import (
-    ConditionExecutorConfig,
-    DelayExecutorConfig,
-    EdgeDefinition,
-    HTTPExecutorConfig,
-    NodeDefinition,
-    WorkflowCreate,
-    WorkflowVersionCreate,
+from app.db.session import dispose_engine, get_session_factory  # noqa: E402
+from app.schemas.workflow import (  # noqa: E402
+    Edge,
+    Node,
+    RetryPolicy,
+    WorkflowDefinition,
 )
-from app.services.workflow_service import WorkflowService
+from app.services.api_key_service import APIKeyService  # noqa: E402
+from app.services.executor_registry import get_executor_registry  # noqa: E402
+from app.services.workflow_service import WorkflowService  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("seed")
 
 
-async def main():
-    settings = get_settings()
-    engine = create_async_engine(settings.database_url, echo=False)
-    session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+DEMO_WORKFLOWS = [
+    WorkflowDefinition(
+        name="Linear HTTP Demo",
+        description="A simple sequence of HTTP requests.",
+        nodes=[
+            Node(
+                id="req1",
+                type="http",
+                config={"url": "https://jsonplaceholder.typicode.com/todos/1", "method": "GET"},
+            ),
+            Node(
+                id="req2",
+                type="http",
+                config={"url": "https://jsonplaceholder.typicode.com/todos/2", "method": "GET"},
+            ),
+        ],
+        edges=[Edge(from_node="req1", to_node="req2")],
+    ),
+    WorkflowDefinition(
+        name="Condition Demo",
+        description="Branches based on the result of a condition.",
+        nodes=[
+            Node(
+                id="cond1",
+                type="condition",
+                config={
+                    "expression": "input.value > 10",
+                    "true_path": "true_path",
+                    "false_path": "false_path",
+                },
+            ),
+            Node(
+                id="true_path",
+                type="http",
+                config={"url": "https://httpbin.org/get?result=true", "method": "GET"},
+            ),
+            Node(
+                id="false_path",
+                type="http",
+                config={"url": "https://httpbin.org/get?result=false", "method": "GET"},
+            ),
+        ],
+        edges=[
+            Edge(from_node="cond1", to_node="true_path", condition="true"),
+            Edge(from_node="cond1", to_node="false_path", condition="false"),
+        ],
+    ),
+    WorkflowDefinition(
+        name="Retry & DLQ Demo",
+        description="This node intentionally fails and exhausts its retries.",
+        nodes=[
+            Node(
+                id="failing_node",
+                type="http",
+                config={"url": "https://httpbin.org/status/500", "method": "GET"},
+                retry_policy=RetryPolicy(max_attempts=3),
+            ),
+        ],
+        edges=[],
+    ),
+    WorkflowDefinition(
+        name="Delay Demo",
+        description="Pauses execution before continuing.",
+        nodes=[
+            Node(id="delay1", type="delay", config={"duration_seconds": 10}),
+            Node(
+                id="after_delay",
+                type="http",
+                config={"url": "https://httpbin.org/get?delayed=true", "method": "GET"},
+            ),
+        ],
+        edges=[Edge(from_node="delay1", to_node="after_delay")],
+    ),
+]
 
-    # We will use the admin API key ID from the seeded migrations, if available,
-    # or just a dummy UUID.
-    # The existing migrations seed: 11111111-1111-1111-1111-111111111111
-    owner_id = UUID("11111111-1111-1111-1111-111111111111")
+
+async def main() -> None:
+    session_factory = get_session_factory()
+    registry = get_executor_registry()
 
     async with session_factory() as session:
-        service = WorkflowService(session)
+        api_key, raw_key = await APIKeyService(session).create("demo-workflows-owner")
+        logger.info("Created owner API key '%s' (id=%s)", api_key.name, api_key.id)
 
-        # 1. Linear HTTP Workflow
-        logger.info("Creating Linear HTTP Workflow...")
-        await service.create_workflow(
-            owner_id,
-            WorkflowCreate(
-                name="Linear HTTP Demo",
-                description="A simple sequence of HTTP requests.",
-            ),
-        )
-        # Fetch it to get the ID (Assuming name is unique for demo purposes,
-        # or we just fetch the latest)
-        # For simplicity, we can just insert and not worry about ID if we don't need it,
-        # but we need it to add a version.
-        workflows = await service.list_workflows(owner_id)
-        linear_wf = next((w for w in workflows if w.name == "Linear HTTP Demo"), None)
-        if linear_wf:
-            await service.create_version(
-                linear_wf.id,
-                owner_id,
-                WorkflowVersionCreate(
-                    nodes=[
-                        NodeDefinition(
-                            id="req1",
-                            type="http",
-                            config=HTTPExecutorConfig(
-                                url="https://jsonplaceholder.typicode.com/todos/1", method="GET"
-                            ),
-                        ),
-                        NodeDefinition(
-                            id="req2",
-                            type="http",
-                            config=HTTPExecutorConfig(
-                                url="https://jsonplaceholder.typicode.com/todos/2", method="GET"
-                            ),
-                        ),
-                    ],
-                    edges=[
-                        EdgeDefinition(source="req1", target="req2"),
-                    ],
-                ),
+        service = WorkflowService(session, registry)
+        for definition in DEMO_WORKFLOWS:
+            workflow, version = await service.create_workflow(
+                name=definition.name,
+                description=definition.description,
+                definition=definition,
+                owner_api_key_id=api_key.id,
             )
+            logger.info("Seeded '%s' (id=%s, v%s)", workflow.name, workflow.id, version.version_number)
 
-        # 2. Condition Workflow
-        logger.info("Creating Condition Workflow...")
-        await service.create_workflow(
-            owner_id,
-            WorkflowCreate(
-                name="Condition Demo",
-                description="Branches based on the status of a condition.",
-            ),
-        )
-        workflows = await service.list_workflows(owner_id)
-        cond_wf = next((w for w in workflows if w.name == "Condition Demo"), None)
-        if cond_wf:
-            await service.create_version(
-                cond_wf.id,
-                owner_id,
-                WorkflowVersionCreate(
-                    nodes=[
-                        NodeDefinition(
-                            id="cond1",
-                            type="condition",
-                            config=ConditionExecutorConfig(
-                                condition_expression="$.input.value > 10"
-                            ),
-                        ),
-                        NodeDefinition(
-                            id="true_path",
-                            type="http",
-                            config=HTTPExecutorConfig(
-                                url="https://httpbin.org/get?result=true", method="GET"
-                            ),
-                        ),
-                        NodeDefinition(
-                            id="false_path",
-                            type="http",
-                            config=HTTPExecutorConfig(
-                                url="https://httpbin.org/get?result=false", method="GET"
-                            ),
-                        ),
-                    ],
-                    edges=[
-                        EdgeDefinition(source="cond1", target="true_path", condition="true"),
-                        EdgeDefinition(source="cond1", target="false_path", condition="false"),
-                    ],
-                ),
-            )
+    await dispose_engine()
 
-        # 3. Retry-to-DLQ Workflow
-        logger.info("Creating Retry-to-DLQ Workflow...")
-        await service.create_workflow(
-            owner_id,
-            WorkflowCreate(
-                name="Retry & DLQ Demo",
-                description="This node intentionally fails and uses max retries.",
-            ),
-        )
-        workflows = await service.list_workflows(owner_id)
-        retry_wf = next((w for w in workflows if w.name == "Retry & DLQ Demo"), None)
-        if retry_wf:
-            await service.create_version(
-                retry_wf.id,
-                owner_id,
-                WorkflowVersionCreate(
-                    nodes=[
-                        NodeDefinition(
-                            id="failing_node",
-                            type="http",
-                            config=HTTPExecutorConfig(
-                                url="https://httpbin.org/status/500", method="GET"
-                            ),
-                            max_attempts=3,
-                        ),
-                    ],
-                    edges=[],
-                ),
-            )
-
-        # 4. Delay Workflow
-        logger.info("Creating Delay Workflow...")
-        await service.create_workflow(
-            owner_id,
-            WorkflowCreate(
-                name="Delay Demo",
-                description="Pauses execution before continuing.",
-            ),
-        )
-        workflows = await service.list_workflows(owner_id)
-        delay_wf = next((w for w in workflows if w.name == "Delay Demo"), None)
-        if delay_wf:
-            await service.create_version(
-                delay_wf.id,
-                owner_id,
-                WorkflowVersionCreate(
-                    nodes=[
-                        NodeDefinition(
-                            id="delay1", type="delay", config=DelayExecutorConfig(delay_seconds=10)
-                        ),
-                        NodeDefinition(
-                            id="after_delay",
-                            type="http",
-                            config=HTTPExecutorConfig(
-                                url="https://httpbin.org/get?delayed=true", method="GET"
-                            ),
-                        ),
-                    ],
-                    edges=[
-                        EdgeDefinition(source="delay1", target="after_delay"),
-                    ],
-                ),
-            )
-
-        logger.info("Successfully seeded demo workflows!")
+    print("\nSuccessfully seeded demo workflows!")
+    print(f"Owner API key (shown once, store it now): {raw_key}")
 
 
 if __name__ == "__main__":

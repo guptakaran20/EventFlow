@@ -26,13 +26,20 @@ Once the database container is healthy and the backend is running, apply the Ale
 docker compose exec backend alembic upgrade head
 ```
 
-### 4. Seed Demo Workflows
-To test out the execution engine right away, you can use the seed script to populate the database with several ready-to-run demo workflows (including Linear, Condition, Delay, and Retry-to-DLQ workflows).
+### 4. Create an API Key
+Requests to the API must be authenticated with an API key sent in the `X-EventFlow-API-Key` header. Generate one inside the running backend container:
+```bash
+docker compose exec backend python scripts/create_api_key.py "my key name"
+```
+The raw key (prefixed `efk_`) is printed **once** — store it now, as only its hash is kept in the database.
+
+### 5. Seed Demo Workflows
+To test out the execution engine right away, you can use the seed script to populate the database with several ready-to-run demo workflows (including Linear, Condition, Delay, and Retry-to-DLQ workflows). The script creates its own owner API key and prints it once at the end.
 ```bash
 docker compose exec backend python scripts/seed_demo_workflows.py
 ```
 
-### 5. Open the Application
+### 6. Open the Application
 Navigate to [http://localhost:3000](http://localhost:3000) to access the EventFlow dashboard. 
 
 ## gRPC vs REST Transport
