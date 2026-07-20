@@ -43,7 +43,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       # By default, use local REST mode. To test gRPC execution transport:
       # Change this to 'grpc'
-      - EVENTFLOW_INTERNAL_TRANSPORT=local
+      - EVENTFLOW_INTERNAL_TRANSPORT=grpc
       - QUEUE_PUBLISHER_BACKEND=redis
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
     depends_on:

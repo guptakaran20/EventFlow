@@ -122,7 +122,12 @@ async def main() -> None:
                 definition=definition,
                 owner_api_key_id=api_key.id,
             )
-            logger.info("Seeded '%s' (id=%s, v%s)", workflow.name, workflow.id, version.version_number)
+            logger.info(
+                "Seeded '%s' (id=%s, v%s)",
+                workflow.name,
+                workflow.id,
+                version.version_number,
+            )
 
     await dispose_engine()
 
