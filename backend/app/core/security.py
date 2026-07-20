@@ -118,9 +118,9 @@ async def get_current_principal_from_token(token: str | None) -> AuthenticatedPr
         return AuthenticatedPrincipal(raw_key=raw_key, key_type=key_type, api_key_id=api_key_id)
 
     except jwt.ExpiredSignatureError:
-        raise AppError("Token expired", code="token_expired", status_code=401)
+        raise AppError("Token expired", code="token_expired", status_code=401) from None
     except jwt.PyJWTError:
-        raise AppError("Invalid token", code="invalid_token", status_code=401)
+        raise AppError("Invalid token", code="invalid_token", status_code=401) from None
 
 
 async def get_token(

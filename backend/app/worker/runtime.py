@@ -130,7 +130,8 @@ async def process_job(
 
     if node.status != NodeExecutionStatus.RUNNING:
         logger.info(
-            "Node %s is no longer RUNNING (found %s). Another worker likely completed it. Skipping.",
+            "Node %s is no longer RUNNING (found %s). "
+            "Another worker likely completed it. Skipping.",
             node.id,
             node.status,
         )
@@ -364,7 +365,8 @@ async def run_worker(
                 execution_id = job["execution_id"]
 
                 if heartbeat is not None:
-                    # Note: When processing concurrently, the worker status will just reflect the last started job
+                    # Note: When processing concurrently, the worker status
+                    # will just reflect the last started job
                     await heartbeat.set_status(WorkerStatus.BUSY, current_job_id)
                     await broadcast_worker_updated(
                         execution_id,

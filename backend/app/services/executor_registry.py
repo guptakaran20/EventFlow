@@ -140,7 +140,7 @@ class DelayExecutor:
                 code="invalid_executor_config",
             )
         duration = config["duration_seconds"]
-        if not isinstance(duration, (int, float)) or duration <= 0:
+        if not isinstance(duration, int | float) or duration <= 0:
             raise AppError(
                 "'duration_seconds' must be a positive number",
                 code="invalid_executor_config",

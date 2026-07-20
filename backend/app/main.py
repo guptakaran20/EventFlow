@@ -11,6 +11,7 @@ from app.core.errors import register_exception_handlers
 from app.db.session import dispose_engine
 from app.queue.redis_client import close_redis
 from app.websocket.connection_manager import get_connection_manager
+from app.worker.background import start_background_worker
 
 
 async def _redis_pubsub_listener():
@@ -34,8 +35,6 @@ async def _redis_pubsub_listener():
     finally:
         await pubsub.unsubscribe("eventflow:ws")
 
-
-from app.worker.background import start_background_worker
 
 
 @asynccontextmanager

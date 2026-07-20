@@ -25,7 +25,8 @@ async def main():
     engine = create_async_engine(settings.database_url, echo=False)
     session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
 
-    # We will use the admin API key ID from the seeded migrations, if available, or just a dummy UUID.
+    # We will use the admin API key ID from the seeded migrations, if available,
+    # or just a dummy UUID.
     # The existing migrations seed: 11111111-1111-1111-1111-111111111111
     owner_id = UUID("11111111-1111-1111-1111-111111111111")
 
@@ -41,8 +42,10 @@ async def main():
                 description="A simple sequence of HTTP requests.",
             ),
         )
-        # Fetch it to get the ID (Assuming name is unique for demo purposes, or we just fetch the latest)
-        # For simplicity, we can just insert and not worry about ID if we don't need it, but we need it to add a version.
+        # Fetch it to get the ID (Assuming name is unique for demo purposes,
+        # or we just fetch the latest)
+        # For simplicity, we can just insert and not worry about ID if we don't need it,
+        # but we need it to add a version.
         workflows = await service.list_workflows(owner_id)
         linear_wf = next((w for w in workflows if w.name == "Linear HTTP Demo"), None)
         if linear_wf:

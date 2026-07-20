@@ -11,7 +11,8 @@ logger = logging.getLogger("worker_main")
 async def main():
     settings = get_settings()
     logger.info(
-        f"Starting standalone worker process '{settings.worker_name}' with concurrency {settings.worker_concurrency}..."
+        f"Starting standalone worker process '{settings.worker_name}' "
+        f"with concurrency {settings.worker_concurrency}..."
     )
     try:
         await start_background_worker()

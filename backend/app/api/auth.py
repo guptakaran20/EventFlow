@@ -119,9 +119,9 @@ async def refresh_access_token(
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
     except jwt.ExpiredSignatureError:
-        raise AppError("Refresh token expired", code="token_expired", status_code=401)
+        raise AppError("Refresh token expired", code="token_expired", status_code=401) from None
     except jwt.PyJWTError:
-        raise AppError("Invalid refresh token", code="invalid_token", status_code=401)
+        raise AppError("Invalid refresh token", code="invalid_token", status_code=401) from None
 
 
 @router.post("/logout")

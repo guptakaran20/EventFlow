@@ -170,7 +170,9 @@ class ExecutionEngine:
             try:
                 status_enum = ExecutionStatus[status]
             except KeyError:
-                raise AppError(f"Invalid status: {status}", code="invalid_status", status_code=400)
+                raise AppError(
+                    f"Invalid status: {status}", code="invalid_status", status_code=400
+                ) from None
             stmt = stmt.where(Execution.status == status_enum)
         stmt = stmt.order_by(Execution.started_at.desc().nullslast()).limit(limit).offset(offset)
         result = await self.session.execute(stmt)
