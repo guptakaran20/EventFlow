@@ -3,6 +3,7 @@ import os
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
 
 # Inject required environment variables for tests before any app code is imported
 os.environ.setdefault(
@@ -29,7 +30,13 @@ async def client():
 @pytest.fixture(scope="session", autouse=True)
 async def engine():
     settings = get_settings()
-    engine = create_async_engine(settings.database_url)
+    engine = create_async_engine(settings.database_url, poolclass=NullPool)
+
+    from app.db import session as db_session_module
+
+    db_session_module._engine = engine
+    db_session_module._session_factory = None
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
