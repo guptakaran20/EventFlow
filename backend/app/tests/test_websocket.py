@@ -148,10 +148,11 @@ async def test_stage_and_flush_preserves_order(monkeypatch):
 
     sent: list[dict] = []
 
-    async def fake_broadcast(self, execution_id, message):
+    async def fake_broadcast(execution_id, message):
         sent.append(message)
 
-    monkeypatch.setattr(ConnectionManager, "broadcast", fake_broadcast)
+    from app.websocket import broadcaster
+    monkeypatch.setattr(broadcaster, "_safe_broadcast", fake_broadcast)
 
     await flush_events(session)
 
@@ -172,10 +173,11 @@ async def test_broadcast_failure_never_raises(monkeypatch):
     session = FakeSession()
     stage_event(session, events.execution_updated("e1", "RUNNING"))
 
-    async def boom(self, execution_id, message):
-        raise RuntimeError("broadcast exploded")
+    class FakeRedis:
+        async def publish(self, channel, message):
+            raise RuntimeError("broadcast exploded")
 
-    monkeypatch.setattr(ConnectionManager, "broadcast", boom)
+    monkeypatch.setattr("app.queue.redis_client.get_redis", lambda: FakeRedis())
 
     # Must NOT raise.
     await flush_events(session)
@@ -188,12 +190,17 @@ async def test_broadcast_failure_never_raises(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_broadcast_helpers_deliver_each_event_type_to_all_subscribers():
+async def test_broadcast_helpers_deliver_each_event_type_to_all_subscribers(monkeypatch):
     """Multiple subscribers on one execution each receive every event type."""
     from app.websocket import broadcaster
     from app.websocket.connection_manager import get_connection_manager
 
     manager = get_connection_manager()
+
+    async def fake_broadcast(execution_id, message):
+        await manager.broadcast(execution_id, message)
+        
+    monkeypatch.setattr(broadcaster, "_safe_broadcast", fake_broadcast)
     exec_id = str(uuid.uuid4())
     a, b = FakeSocket(), FakeSocket()
     await manager.connect(exec_id, a)
@@ -273,16 +280,16 @@ async def _create_execution(client: AsyncClient, auth_headers: dict) -> str:
 async def test_ws_connection_success(
     client: AsyncClient, auth_headers: dict, mock_queue_publisher, monkeypatch
 ):
-    async def fake_authorize(exec_id, api_key):
-        return api_key == "test-key"
+    async def fake_authorize(exec_id, token):
+        return token == "test-token"
 
     monkeypatch.setattr("app.api.websocket._authorize", fake_authorize)
 
     execution_id = await _create_execution(client, auth_headers)
 
-    sync_client = TestClient(fastapi_app)
+    sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "test-token"})
     with sync_client.websocket_connect(
-        f"/api/v1/ws/executions/{execution_id}?api_key=test-key"
+        f"/api/v1/ws/executions/{execution_id}"
     ) as ws:
         ws.close()
 
@@ -291,25 +298,26 @@ async def test_ws_connection_success(
 async def test_ws_unauthorized_rejected(
     client: AsyncClient, auth_headers: dict, mock_queue_publisher, monkeypatch
 ):
-    async def fake_authorize(exec_id, api_key):
-        return api_key == "test-key"
+    async def fake_authorize(exec_id, token):
+        return token == "test-token"
 
     monkeypatch.setattr("app.api.websocket._authorize", fake_authorize)
 
     execution_id = await _create_execution(client, auth_headers)
 
-    sync_client = TestClient(fastapi_app)
+    sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "wrong-token"})
     # Wrong key -> connection rejected before accept.
     with pytest.raises(WebSocketDisconnect):
         with sync_client.websocket_connect(
-            f"/api/v1/ws/executions/{execution_id}?api_key=wrong-key"
+            f"/api/v1/ws/executions/{execution_id}"
         ):
             pass
 
     # Valid key but different owner -> also rejected.
+    sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "other-token"})
     with pytest.raises(WebSocketDisconnect):
         with sync_client.websocket_connect(
-            f"/api/v1/ws/executions/{execution_id}?api_key=other-key"
+            f"/api/v1/ws/executions/{execution_id}"
         ):
             pass
 
@@ -324,16 +332,24 @@ async def test_ws_broadcast_failure_does_not_prevent_commit(
     state and flushes events). The commit must still succeed and be readable.
     """
 
-    async def boom(self, execution_id, message):
-        raise RuntimeError("broadcast exploded")
+    class FakeRedis:
+        async def publish(self, channel, message):
+            raise RuntimeError("broadcast exploded")
 
-    async def fake_authorize(exec_id, api_key):
-        return api_key == "test-key"
+    async def fake_authorize(exec_id, token):
+        return token == "test-token"
 
     monkeypatch.setattr("app.api.websocket._authorize", fake_authorize)
-    monkeypatch.setattr(ConnectionManager, "broadcast", boom)
+    monkeypatch.setattr("app.queue.redis_client.get_redis", lambda: FakeRedis())
 
     execution_id = await _create_execution(client, auth_headers)
+
+    sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "test-token"})
+    try:
+        with sync_client.websocket_connect(f"/api/v1/ws/executions/{execution_id}") as ws:
+            pass
+    except Exception:
+        pass
 
     # State was committed despite the broadcast blowing up on every event.
     get_resp = await client.get(f"/api/v1/executions/{execution_id}", headers=auth_headers)

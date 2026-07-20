@@ -14,7 +14,7 @@ async def other_auth_headers(client, db_session):
 
     service = APIKeyService(db_session)
     api_key_obj, raw_key = await service.create("Other User Key")
-    response = await client.post("/auth/token", json={"api_key": raw_key})
+    response = await client.post("/api/v1/auth/token", json={"api_key": raw_key})
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
