@@ -65,15 +65,16 @@ class MetricsService:
         node_status_counts = dict((await self._db.execute(node_status_stmt)).all())
         dead_letter_jobs = (await self._db.execute(dlq_stmt)).scalar_one()
         queue_depth = await self._get_queue_depth()
-        
-        from datetime import datetime, UTC
+
+        from datetime import UTC, datetime
+
         now = datetime.now(UTC)
-        
+
         # worker_status_counts in DB just groups by status, but doesn't check last_heartbeat.
         # So instead of a simple group_by, we fetch all workers and calculate in python.
         workers_stmt = select(Worker)
         workers_list = (await self._db.execute(workers_stmt)).scalars().all()
-        
+
         workers_count = len(workers_list)
         active_workers = 0
         for w in workers_list:
@@ -84,7 +85,7 @@ class MetricsService:
                 age = (now - w.last_heartbeat_at.replace(tzinfo=UTC)).total_seconds()
                 if age > 30:
                     is_stale = True
-            
+
             if not is_stale and w.status in ACTIVE_WORKER_STATUSES:
                 active_workers += 1
 

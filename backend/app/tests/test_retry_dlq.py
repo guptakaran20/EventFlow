@@ -5,7 +5,6 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.config import get_settings
 from app.db.session import get_session_factory
 from app.models import (
     APIKey,
@@ -223,6 +222,7 @@ async def test_ack_happens_after_retry_state_committed(engine):
 @pytest.fixture
 async def other_auth_headers(client, db_session):
     from app.services.api_key_service import APIKeyService
+
     service = APIKeyService(db_session)
     api_key_obj, raw_key = await service.create("Other User Key")
     response = await client.post("/auth/token", json={"api_key": raw_key})

@@ -1,7 +1,7 @@
 import asyncio
+import os
 import socket
 import uuid
-import os
 
 from app.core.config import get_settings
 from app.db.session import get_session_factory
@@ -14,9 +14,10 @@ from app.worker.heartbeat import HeartbeatController, run_heartbeat_loop
 from app.worker.recovery import run_recovery_loop
 from app.worker.runtime import run_worker
 
+
 async def start_background_worker():
     settings = get_settings()
-    
+
     def _build_queue_publisher():
         if settings.queue_publisher_backend == "redis":
             return RedisStreamQueuePublisher(
@@ -28,7 +29,7 @@ async def start_background_worker():
 
     hostname = socket.gethostname()
     consumer_name = settings.worker_name or f"worker-{hostname}-{os.getpid()}-{uuid.uuid4()}"
-    
+
     session_factory = get_session_factory()
     async with session_factory() as session:
         worker = await WorkerService(session).register_worker(consumer_name, hostname)
@@ -59,7 +60,7 @@ async def start_background_worker():
             stop_event,
         )
     )
-    
+
     try:
         await run_worker(
             session_factory=session_factory,

@@ -1,4 +1,5 @@
 from collections import defaultdict, deque
+
 from typing_extensions import TypedDict
 
 from app.core.errors import AppError

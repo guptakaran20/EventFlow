@@ -1,6 +1,3 @@
-from app.core.config import get_settings
-
-
 async def test_verify_rejects_missing_api_key(client):
     response = await client.get("/auth/verify")
     assert response.status_code == 401

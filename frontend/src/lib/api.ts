@@ -1,7 +1,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 export class ApiError extends Error {
-  constructor(public status: number, public message: string, public data?: any) {
+  constructor(public status: number, public message: string, public data?: unknown) {
     super(message);
     this.name = "ApiError";
   }
@@ -22,7 +22,7 @@ async function refreshAccessToken(): Promise<boolean> {
     if (response.ok) {
       return true;
     }
-  } catch (e) {
+  } catch {
     // Ignore refresh errors
   }
   return false;
@@ -60,7 +60,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   let data;
   try {
     data = await response.json();
-  } catch (e) {
+  } catch {
     data = null;
   }
 
@@ -71,14 +71,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     if (data?.error) {
       errorMsg = data.error.message || errorMsg;
       if (Array.isArray(data.error.details)) {
-        errorMsg += ": " + data.error.details.map((e: any) => `${e.loc?.join('.') || 'unknown'}: ${e.msg}`).join(', ');
+        errorMsg += ": " + data.error.details.map((e: { loc?: string[]; msg: string }) => `${e.loc?.join('.') || 'unknown'}: ${e.msg}`).join(', ');
       }
       details = data.error.details || data.error;
     } else if (data?.detail) {
       if (typeof data.detail === "string") {
         errorMsg = data.detail;
       } else if (Array.isArray(data.detail)) {
-        errorMsg = data.detail.map((e: any) => `${e.loc?.join('.') || 'unknown'}: ${e.msg}`).join(', ');
+        errorMsg = data.detail.map((e: { loc?: string[]; msg: string }) => `${e.loc?.join('.') || 'unknown'}: ${e.msg}`).join(', ');
       }
       details = data.detail;
     }
@@ -91,9 +91,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   get: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { ...options, method: "GET" }),
-  post: <T>(endpoint: string, body: any, options?: RequestInit) =>
+  post: <T>(endpoint: string, body: unknown, options?: RequestInit) =>
     request<T>(endpoint, { ...options, method: "POST", body: JSON.stringify(body) }),
-  put: <T>(endpoint: string, body: any, options?: RequestInit) =>
+  put: <T>(endpoint: string, body: unknown, options?: RequestInit) =>
     request<T>(endpoint, { ...options, method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { ...options, method: "DELETE" }),
   
@@ -119,7 +119,7 @@ export const api = {
         method: "POST",
         credentials: "include"
       });
-    } catch (e) {}
+    } catch {}
     localStorage.removeItem("eventflow_auth_status");
     window.location.href = "/login";
   },

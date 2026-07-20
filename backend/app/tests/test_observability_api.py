@@ -4,7 +4,6 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.config import get_settings
 from app.main import app as fastapi_app
 from app.models import DeadLetterJob, ExecutionLog, LogLevel
 from app.queue.publisher import InMemoryQueuePublisher
@@ -15,6 +14,7 @@ from app.transport.local_execution_client import get_queue_publisher
 @pytest.fixture
 async def other_auth_headers(client, db_session):
     from app.services.api_key_service import APIKeyService
+
     service = APIKeyService(db_session)
     api_key_obj, raw_key = await service.create("Other User Key")
     response = await client.post("/auth/token", json={"api_key": raw_key})

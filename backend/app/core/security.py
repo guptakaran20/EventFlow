@@ -1,9 +1,9 @@
 import uuid
-import jwt
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
+import jwt
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +32,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     else:
         expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
     to_encode.update({"exp": expire, "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, settings.jwt_access_secret_key, algorithm=settings.jwt_algorithm)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.jwt_access_secret_key, algorithm=settings.jwt_algorithm
+    )
     return encoded_jwt
 
 
@@ -44,7 +46,9 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> 
     else:
         expire = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(to_encode, settings.jwt_refresh_secret_key, algorithm=settings.jwt_algorithm)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.jwt_refresh_secret_key, algorithm=settings.jwt_algorithm
+    )
     return encoded_jwt
 
 
@@ -94,23 +98,25 @@ async def resolve_api_key_id(
 async def get_current_principal_from_token(token: str | None) -> AuthenticatedPrincipal:
     if not token:
         raise AppError("Missing or invalid token", code="unauthorized", status_code=401)
-    
+
     settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_access_secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token, settings.jwt_access_secret_key, algorithms=[settings.jwt_algorithm]
+        )
         if payload.get("type") != "access":
             raise AppError("Invalid token type", code="invalid_token", status_code=401)
-            
+
         raw_key = payload.get("raw_key")
         key_type = payload.get("key_type")
         api_key_id_str = payload.get("api_key_id")
-        
+
         if raw_key is None or key_type is None:
             raise AppError("Invalid token payload", code="invalid_token", status_code=401)
-            
+
         api_key_id = uuid.UUID(api_key_id_str) if api_key_id_str else None
         return AuthenticatedPrincipal(raw_key=raw_key, key_type=key_type, api_key_id=api_key_id)
-        
+
     except jwt.ExpiredSignatureError:
         raise AppError("Token expired", code="token_expired", status_code=401)
     except jwt.PyJWTError:
@@ -118,8 +124,7 @@ async def get_current_principal_from_token(token: str | None) -> AuthenticatedPr
 
 
 async def get_token(
-    request: Request,
-    bearer_token: Annotated[str | None, Depends(_oauth2_scheme)]
+    request: Request, bearer_token: Annotated[str | None, Depends(_oauth2_scheme)]
 ) -> str | None:
     return request.cookies.get("eventflow_jwt") or bearer_token
 

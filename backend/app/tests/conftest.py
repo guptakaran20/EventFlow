@@ -1,10 +1,13 @@
 import os
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # Inject required environment variables for tests before any app code is imported
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://eventflow:eventflow@localhost:5432/eventflow_test"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://eventflow:eventflow@localhost:5432/eventflow_test"
+)
 os.environ["REDIS_URL"] = "redis://localhost:6379/1"
 os.environ["JWT_ACCESS_SECRET_KEY"] = "test-secret-access"
 os.environ["JWT_REFRESH_SECRET_KEY"] = "test-secret-refresh"
@@ -38,6 +41,7 @@ async def engine():
 @pytest.fixture
 async def db_session(engine):
     from sqlalchemy.ext.asyncio import AsyncSession
+
     async with AsyncSession(engine, expire_on_commit=False) as session:
         yield session
 
@@ -45,6 +49,7 @@ async def db_session(engine):
 @pytest.fixture
 async def api_key(db_session):
     from app.services.api_key_service import APIKeyService
+
     service = APIKeyService(db_session)
     api_key_obj, raw_key = await service.create("Test Vendor Key")
     return raw_key
@@ -56,4 +61,3 @@ async def auth_headers(client, api_key):
     assert response.status_code == 200, f"Token generation failed: {response.text}"
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
-

@@ -15,7 +15,6 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.websocket import events
-from app.websocket.connection_manager import get_connection_manager
 
 logger = logging.getLogger("app.websocket.broadcaster")
 
@@ -40,7 +39,9 @@ async def flush_events(session: AsyncSession) -> None:
 async def _safe_broadcast(execution_id: uuid.UUID | str, message: dict[str, Any]) -> None:
     try:
         import json
+
         from app.queue.redis_client import get_redis
+
         redis = get_redis()
         payload = json.dumps({"execution_id": str(execution_id), "message": message})
         await redis.publish("eventflow:ws", payload)

@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: eventflow
+      POSTGRES_PASSWORD: eventflow
+      POSTGRES_DB: eventflow
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://eventflow:eventflow@postgres:5432/eventflow
+      - REDIS_URL=redis://redis:6379/0
+      # By default, use local REST mode. To test gRPC execution transport:
+      # Change this to 'grpc'
+      - EVENTFLOW_INTERNAL_TRANSPORT=local
+      - QUEUE_PUBLISHER_BACKEND=redis
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-1:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://eventflow:eventflow@postgres:5432/eventflow
+      - REDIS_URL=redis://redis:6379/0
+      # Keep this matching the backend's transport method
+      - EVENTFLOW_INTERNAL_TRANSPORT=local
+      - WORKER_CONCURRENCY=4
+      - WORKER_NAME=docker-worker-1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  worker-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://eventflow:eventflow@postgres:5432/eventflow
+      - REDIS_URL=redis://redis:6379/0
+      # Keep this matching the backend's transport method
+      - EVENTFLOW_INTERNAL_TRANSPORT=local
+      - WORKER_CONCURRENCY=4
+      - WORKER_NAME=docker-worker-2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Expose the API to the browser via localhost
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

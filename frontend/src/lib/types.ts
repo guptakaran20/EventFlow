@@ -9,7 +9,7 @@ export type Node = {
   id: string;
   type: string;
   name: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   retry_policy?: RetryPolicy;
 };
 
@@ -42,7 +42,7 @@ export type WorkflowVersionResponse = {
   version_number: number;
   checksum: string;
   created_at: string;
-  definition?: any;
+  definition?: unknown;
 };
 
 export type WorkflowDetailResponse = {
@@ -62,8 +62,8 @@ export type NodeExecutionResponse = {
   status: string;
   attempt: number;
   max_attempts: number;
-  input_payload: Record<string, any> | null;
-  output_payload: Record<string, any> | null;
+  input_payload: Record<string, unknown> | null;
+  output_payload: Record<string, unknown> | null;
   error_message: string | null;
 };
 
@@ -72,7 +72,7 @@ export type ExecutionResponse = {
   workflow_id: string;
   workflow_version_id: string;
   status: string;
-  input_payload: Record<string, any> | null;
+  input_payload: Record<string, unknown> | null;
   error_message: string | null;
   node_executions: NodeExecutionResponse[];
 };
@@ -82,7 +82,7 @@ export type ExecutionLogResponse = {
   timestamp: string;
   level: string;
   message: string;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 };
 
 export type MetricsSummaryResponse = {
@@ -101,7 +101,7 @@ export type DeadLetterJobResponse = {
   node_execution_id: string;
   reason: string;
   attempts: number;
-  payload: Record<string, any> | null;
+  payload: Record<string, unknown> | null;
   resolved_at: string | null;
   resolution_note: string | null;
   created_at: string;

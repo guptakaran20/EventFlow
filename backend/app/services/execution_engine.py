@@ -170,15 +170,9 @@ class ExecutionEngine:
             try:
                 status_enum = ExecutionStatus[status]
             except KeyError:
-                raise AppError(
-                    f"Invalid status: {status}", code="invalid_status", status_code=400
-                )
+                raise AppError(f"Invalid status: {status}", code="invalid_status", status_code=400)
             stmt = stmt.where(Execution.status == status_enum)
-        stmt = (
-            stmt.order_by(Execution.started_at.desc().nullslast())
-            .limit(limit)
-            .offset(offset)
-        )
+        stmt = stmt.order_by(Execution.started_at.desc().nullslast()).limit(limit).offset(offset)
         result = await self.session.execute(stmt)
         return [
             ExecutionDTO(
@@ -261,8 +255,7 @@ class ExecutionEngine:
 
         # Also resolve the DLQ job automatically if it exists and is unresolved
         dlq_stmt = select(DeadLetterJob).where(
-            DeadLetterJob.node_execution_id == node_exec.id,
-            DeadLetterJob.resolved_at.is_(None)
+            DeadLetterJob.node_execution_id == node_exec.id, DeadLetterJob.resolved_at.is_(None)
         )
         dlq_result = await self.session.execute(dlq_stmt)
         dlq_job = dlq_result.scalar_one_or_none()
@@ -312,11 +305,12 @@ class ExecutionEngine:
         execution = result.scalar_one_or_none()
         if not execution:
             raise AppError("Execution not found", code="not_found", status_code=404)
-        
-        # DeadLetterJobs reference NodeExecutions. 
+
+        # DeadLetterJobs reference NodeExecutions.
         # Since NodeExecutions are cascade deleted by SQLAlchemy on Execution deletion,
         # we should manually delete associated DeadLetterJobs first.
         from sqlalchemy import delete
+
         dlq_stmt = delete(DeadLetterJob).where(DeadLetterJob.execution_id == execution_id)
         await self.session.execute(dlq_stmt)
 

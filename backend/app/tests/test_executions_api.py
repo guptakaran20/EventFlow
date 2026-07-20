@@ -3,7 +3,6 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
-from app.core.config import get_settings
 from app.main import app as fastapi_app
 from app.queue.publisher import InMemoryQueuePublisher
 from app.transport.local_execution_client import get_queue_publisher
@@ -12,6 +11,7 @@ from app.transport.local_execution_client import get_queue_publisher
 @pytest.fixture
 async def other_auth_headers(client, db_session):
     from app.services.api_key_service import APIKeyService
+
     service = APIKeyService(db_session)
     api_key_obj, raw_key = await service.create("Other User Key")
     response = await client.post("/auth/token", json={"api_key": raw_key})
@@ -136,9 +136,7 @@ async def test_list_executions(
     mock_queue_publisher: InMemoryQueuePublisher,
 ):
     for _ in range(2):
-        resp = await client.post(
-            "/api/v1/executions", json=execution_payload, headers=auth_headers
-        )
+        resp = await client.post("/api/v1/executions", json=execution_payload, headers=auth_headers)
         assert resp.status_code == 201
 
     list_resp = await client.get("/api/v1/executions", headers=auth_headers)
@@ -147,9 +145,7 @@ async def test_list_executions(
     assert len(data) >= 2
     assert all(e["status"] == "RUNNING" for e in data)
 
-    filtered = await client.get(
-        "/api/v1/executions?status=RUNNING&limit=1", headers=auth_headers
-    )
+    filtered = await client.get("/api/v1/executions?status=RUNNING&limit=1", headers=auth_headers)
     assert filtered.status_code == 200
     assert len(filtered.json()) == 1
 
@@ -162,9 +158,7 @@ async def test_list_executions_owner_scoped(
     other_auth_headers: dict,
     mock_queue_publisher: InMemoryQueuePublisher,
 ):
-    resp = await client.post(
-        "/api/v1/executions", json=execution_payload, headers=auth_headers
-    )
+    resp = await client.post("/api/v1/executions", json=execution_payload, headers=auth_headers)
     assert resp.status_code == 201
     created_id = resp.json()["id"]
 

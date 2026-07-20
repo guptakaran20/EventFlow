@@ -1,3 +1,6 @@
+import asyncio
+import json
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,15 +10,12 @@ from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.db.session import dispose_engine
 from app.queue.redis_client import close_redis
-
-
-import asyncio
-import json
-import logging
 from app.websocket.connection_manager import get_connection_manager
+
 
 async def _redis_pubsub_listener():
     from app.queue.redis_client import get_redis
+
     redis = get_redis()
     pubsub = redis.pubsub()
     await pubsub.subscribe("eventflow:ws")
@@ -24,7 +24,9 @@ async def _redis_pubsub_listener():
             if message["type"] == "message":
                 try:
                     payload = json.loads(message["data"])
-                    await get_connection_manager().broadcast(payload["execution_id"], payload["message"])
+                    await get_connection_manager().broadcast(
+                        payload["execution_id"], payload["message"]
+                    )
                 except Exception:
                     logging.getLogger("app.websocket").exception("Failed to process pubsub message")
     except asyncio.CancelledError:
@@ -32,23 +34,26 @@ async def _redis_pubsub_listener():
     finally:
         await pubsub.unsubscribe("eventflow:ws")
 
+
 from app.worker.background import start_background_worker
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(_redis_pubsub_listener())
     worker_task = asyncio.create_task(start_background_worker())
-    
+
     settings = get_settings()
     if settings.eventflow_internal_transport == "grpc":
         from app.transport.grpc_server import start_grpc_server, stop_grpc_server
+
         await start_grpc_server()
 
     yield
 
     if settings.eventflow_internal_transport == "grpc":
         await stop_grpc_server()
-        
+
     task.cancel()
     worker_task.cancel()
     try:
@@ -71,6 +76,7 @@ def create_app() -> FastAPI:
     )
 
     from fastapi.middleware.cors import CORSMiddleware
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,

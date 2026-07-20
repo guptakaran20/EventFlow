@@ -139,5 +139,5 @@ async def delete_workflow(
     deleted = await service.delete_workflow(workflow_id, owner_id)
     if not deleted:
         from app.core.errors import AppError
-        raise AppError("Workflow not found", code="not_found", status_code=404)
 
+        raise AppError("Workflow not found", code="not_found", status_code=404)

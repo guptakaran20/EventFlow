@@ -1,6 +1,6 @@
 import asyncio
-import uuid
 import logging
+import uuid
 from collections.abc import Callable
 
 from redis.asyncio import Redis
@@ -116,9 +116,7 @@ async def process_job(
         result = ExecutorResult(success=False, error=str(exc))
 
     # Serialize completion processing for this execution to prevent join-node race conditions.
-    await session.execute(
-        select(Execution).where(Execution.id == execution.id).with_for_update()
-    )
+    await session.execute(select(Execution).where(Execution.id == execution.id).with_for_update())
 
     # Refresh node states since other concurrent branches may have completed during our execution.
     all_node_execs_stmt = (
@@ -177,7 +175,7 @@ async def process_job(
             for ne in all_node_execs
         ):
             final_status = ExecutionStatus.FAILED
-            
+
         await state_service.transition_execution_status(
             execution_id=execution.id,
             from_status=ExecutionStatus.RUNNING,
@@ -185,7 +183,7 @@ async def process_job(
         )
 
     await session.commit()
-    
+
     for n in nodes_to_publish:
         message_id = await queue_publisher.publish_node_execution(
             execution_id=execution.id,
@@ -196,11 +194,9 @@ async def process_job(
         )
         if message_id:
             n.redis_message_id = message_id
-            
+
     await session.commit()
     await flush_events(session)
-
-
 
 
 async def _handle_node_failure(
@@ -253,7 +249,7 @@ async def _handle_node_failure(
             from_status=ExecutionStatus.RUNNING,
             to_status=ExecutionStatus.FAILED,
         )
-        
+
     return []
 
 
@@ -317,7 +313,7 @@ async def _queue_downstream_nodes(
             to_status=NodeExecutionStatus.QUEUED,
         )
         nodes_to_publish.append(queued)
-        
+
     return nodes_to_publish
 
 
@@ -353,6 +349,7 @@ async def run_worker(
             )
         except (TimeoutError, Exception) as e:
             import redis as redis_mod
+
             if isinstance(e, redis_mod.exceptions.TimeoutError) or isinstance(e, TimeoutError):
                 continue
             raise
@@ -360,11 +357,12 @@ async def run_worker(
             continue
 
         for _stream_name, messages in response:
+
             async def process_and_ack(message_id, fields):
                 job = deserialize_job_payload(fields)
                 current_job_id = str(job["node_execution_id"])
                 execution_id = job["execution_id"]
-                
+
                 if heartbeat is not None:
                     # Note: When processing concurrently, the worker status will just reflect the last started job
                     await heartbeat.set_status(WorkerStatus.BUSY, current_job_id)

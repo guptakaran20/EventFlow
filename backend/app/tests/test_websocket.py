@@ -15,7 +15,6 @@ from httpx import AsyncClient
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from app.core.config import get_settings
 from app.main import app as fastapi_app
 from app.queue.publisher import InMemoryQueuePublisher
 from app.transport.local_execution_client import get_queue_publisher
@@ -239,9 +238,6 @@ def test_ping_envelope_shape():
 # --------------------------------------------------------------------------- #
 
 
-
-
-
 @pytest.fixture
 def mock_queue_publisher():
     publisher = InMemoryQueuePublisher()
@@ -274,11 +270,14 @@ async def _create_execution(client: AsyncClient, auth_headers: dict) -> str:
 
 
 @pytest.mark.asyncio
-async def test_ws_connection_success(client: AsyncClient, auth_headers: dict, mock_queue_publisher, monkeypatch):
+async def test_ws_connection_success(
+    client: AsyncClient, auth_headers: dict, mock_queue_publisher, monkeypatch
+):
     async def fake_authorize(exec_id, api_key):
         return api_key == "test-key"
+
     monkeypatch.setattr("app.api.websocket._authorize", fake_authorize)
-    
+
     execution_id = await _create_execution(client, auth_headers)
 
     sync_client = TestClient(fastapi_app)
@@ -294,8 +293,9 @@ async def test_ws_unauthorized_rejected(
 ):
     async def fake_authorize(exec_id, api_key):
         return api_key == "test-key"
+
     monkeypatch.setattr("app.api.websocket._authorize", fake_authorize)
-    
+
     execution_id = await _create_execution(client, auth_headers)
 
     sync_client = TestClient(fastapi_app)
@@ -329,6 +329,7 @@ async def test_ws_broadcast_failure_does_not_prevent_commit(
 
     async def fake_authorize(exec_id, api_key):
         return api_key == "test-key"
+
     monkeypatch.setattr("app.api.websocket._authorize", fake_authorize)
     monkeypatch.setattr(ConnectionManager, "broadcast", boom)
 

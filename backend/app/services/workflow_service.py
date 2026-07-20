@@ -144,9 +144,7 @@ class WorkflowService:
 
         return version
 
-    async def delete_workflow(
-        self, workflow_id: uuid.UUID, owner_api_key_id: uuid.UUID
-    ) -> bool:
+    async def delete_workflow(self, workflow_id: uuid.UUID, owner_api_key_id: uuid.UUID) -> bool:
         stmt = select(Workflow).where(
             Workflow.id == workflow_id, Workflow.owner_api_key_id == owner_api_key_id
         )

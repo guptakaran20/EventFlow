@@ -75,7 +75,7 @@ class GrpcExecutionEngineClient:
         )
         if status:
             req.status = status
-            
+
         resp = await stub.ListExecutions(req)
         return [self._map_execution(e) for e in resp.executions]
 
@@ -132,7 +132,9 @@ class GrpcExecutionEngineClient:
             workflow_id=UUID(msg.workflow_id),
             workflow_version_id=UUID(msg.workflow_version_id),
             status=msg.status,
-            input_payload=MessageToDict(msg.input_payload) if msg.HasField("input_payload") else None,
+            input_payload=MessageToDict(msg.input_payload)
+            if msg.HasField("input_payload")
+            else None,
             error_message=msg.error_message if msg.HasField("error_message") else None,
             node_executions=[self._map_node_execution(n) for n in msg.node_executions],
         )
@@ -146,7 +148,11 @@ class GrpcExecutionEngineClient:
             status=msg.status,
             attempt=msg.attempt,
             max_attempts=msg.max_attempts,
-            input_payload=MessageToDict(msg.input_payload) if msg.HasField("input_payload") else None,
-            output_payload=MessageToDict(msg.output_payload) if msg.HasField("output_payload") else None,
+            input_payload=MessageToDict(msg.input_payload)
+            if msg.HasField("input_payload")
+            else None,
+            output_payload=MessageToDict(msg.output_payload)
+            if msg.HasField("output_payload")
+            else None,
             error_message=msg.error_message if msg.HasField("error_message") else None,
         )

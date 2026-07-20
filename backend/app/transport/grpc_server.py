@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from uuid import UUID
 
@@ -40,7 +39,7 @@ class ExecutionEngineServiceServicer(pb_grpc.ExecutionEngineServiceServicer):
 
         for node_dto in dto.node_executions:
             msg.node_executions.append(self._map_node_execution_dto_to_pb(node_dto))
-            
+
         return msg
 
     def _map_node_execution_dto_to_pb(self, dto) -> pb.NodeExecutionDTO:
@@ -108,12 +107,14 @@ class ExecutionEngineServiceServicer(pb_grpc.ExecutionEngineServiceServicer):
             status = request.status if request.HasField("status") else None
             limit = request.limit if request.limit else 50
             offset = request.offset if request.offset else 0
-            
+
             session_factory = get_session_factory()
             async with session_factory() as session:
                 engine = ExecutionEngine(session, self.registry, self.queue_publisher)
-                dtos = await engine.list_executions(owner_id, status=status, limit=limit, offset=offset)
-                
+                dtos = await engine.list_executions(
+                    owner_id, status=status, limit=limit, offset=offset
+                )
+
                 resp = pb.ExecutionListDTO()
                 for dto in dtos:
                     resp.executions.append(self._map_execution_dto_to_pb(dto))
@@ -132,7 +133,7 @@ class ExecutionEngineServiceServicer(pb_grpc.ExecutionEngineServiceServicer):
             async with session_factory() as session:
                 engine = ExecutionEngine(session, self.registry, self.queue_publisher)
                 dtos = await engine.get_node_executions(execution_id, owner_id)
-                
+
                 resp = pb.NodeExecutionListDTO()
                 for dto in dtos:
                     resp.node_executions.append(self._map_node_execution_dto_to_pb(dto))
@@ -209,7 +210,7 @@ class GrpcServerContext:
 
     async def start(self, port=50051):
         settings = get_settings()
-        
+
         # Initialize dependencies
         if settings.queue_publisher_backend == "redis":
             redis_client = get_redis()
@@ -220,13 +221,13 @@ class GrpcServerContext:
             )
         else:
             publisher = InMemoryQueuePublisher()
-            
+
         registry = get_executor_registry()
-        
+
         self.server = grpc.aio.server()
         servicer = ExecutionEngineServiceServicer(registry, publisher)
         pb_grpc.add_ExecutionEngineServiceServicer_to_server(servicer, self.server)
-        
+
         self.server.add_insecure_port(f"[::]:{port}")
         await self.server.start()
         logger.info(f"gRPC ExecutionEngineService started on port {port}")
@@ -236,10 +237,13 @@ class GrpcServerContext:
             logger.info("Stopping gRPC ExecutionEngineService...")
             await self.server.stop(grace=5)
 
+
 _grpc_server_context = GrpcServerContext()
+
 
 async def start_grpc_server():
     await _grpc_server_context.start()
+
 
 async def stop_grpc_server():
     await _grpc_server_context.stop()

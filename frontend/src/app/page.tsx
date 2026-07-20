@@ -57,13 +57,13 @@ const CONCEPTS: [string, string][] = [
   ["Stream", "Redis queue of ready node jobs."],
 ];
 
-const STACK = ["FastAPI", "PostgreSQL", "Redis Streams", "WebSocket", "gRPC", "Docker"];
 
-import { useRouter } from "next/navigation";
+
+
 
 export default function HomePage() {
   const root = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+
 
   // Redirect removed: users can view homepage even if logged in.
 
@@ -79,8 +79,7 @@ export default function HomePage() {
           .from(".hero-eyebrow", { opacity: 0, y: 12, duration: 0.5 })
           .from(".hero-line", { opacity: 0, y: 28, duration: 0.7, stagger: 0.1 }, "-=0.2")
           .from(".hero-lede", { opacity: 0, y: 20, duration: 0.6 }, "-=0.4")
-          .from(".hero-cta", { opacity: 0, y: 16, duration: 0.5, stagger: 0.08 }, "-=0.3")
-          .from(".hero-meta", { opacity: 0, duration: 0.6 }, "-=0.2");
+          .from(".hero-cta-wrapper", { opacity: 0, y: 16, duration: 0.5 }, "-=0.3");
 
         // Blueprint reveal + persistent pulse
         gsap.from(".bp-stroke", {
@@ -170,7 +169,7 @@ export default function HomePage() {
             versioning, and live execution monitoring. Infrastructure software, not
             an automation clone.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 mt-9">
+          <div className="hero-cta-wrapper flex flex-col sm:flex-row gap-3 mt-9">
             <Link
               href="/login"
               className="hero-cta inline-flex items-center justify-center h-11 px-6 bg-inverse text-inverse-foreground text-sm font-medium hover:opacity-90 transition-opacity"

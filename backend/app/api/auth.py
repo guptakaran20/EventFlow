@@ -1,7 +1,7 @@
-import jwt
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Body, Response, Request
+import jwt
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,19 +40,18 @@ async def login_for_access_token(
     db: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> TokenResponse:
     principal = await authenticate_api_key(request.api_key, db)
-    
+
     token_data = {
         "raw_key": principal.raw_key,
         "key_type": principal.key_type,
-        "api_key_id": str(principal.api_key_id) if principal.api_key_id else None
+        "api_key_id": str(principal.api_key_id) if principal.api_key_id else None,
     }
-    
+
     access_token = create_access_token(data=token_data)
     refresh_token = create_refresh_token(data=token_data)
-    
-    
+
     settings = get_settings()
-    
+
     response.set_cookie(
         key="eventflow_jwt",
         value=access_token,
@@ -69,7 +68,7 @@ async def login_for_access_token(
         secure=True,
         max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
     )
-    
+
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
@@ -83,21 +82,23 @@ async def refresh_access_token(
     token = request.cookies.get("eventflow_refresh") or (body.refresh_token if body else None)
     if not token:
         raise AppError("Missing refresh token", code="missing_token", status_code=401)
-        
+
     try:
-        payload = jwt.decode(token, settings.jwt_refresh_secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token, settings.jwt_refresh_secret_key, algorithms=[settings.jwt_algorithm]
+        )
         if payload.get("type") != "refresh":
             raise AppError("Invalid token type", code="invalid_token", status_code=401)
-            
+
         token_data = {
             "raw_key": payload.get("raw_key"),
             "key_type": payload.get("key_type"),
-            "api_key_id": payload.get("api_key_id")
+            "api_key_id": payload.get("api_key_id"),
         }
-        
+
         access_token = create_access_token(data=token_data)
         refresh_token = create_refresh_token(data=token_data)
-        
+
         response.set_cookie(
             key="eventflow_jwt",
             value=access_token,
@@ -114,9 +115,9 @@ async def refresh_access_token(
             secure=True,
             max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
         )
-        
+
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
-        
+
     except jwt.ExpiredSignatureError:
         raise AppError("Refresh token expired", code="token_expired", status_code=401)
     except jwt.PyJWTError:
@@ -134,6 +135,7 @@ class MeResponse(BaseModel):
     raw_key: str
     key_type: str
 
+
 @router.get("/me", response_model=MeResponse)
 async def get_current_user(
     principal: Annotated[AuthenticatedPrincipal, Depends(require_api_key)],
@@ -143,6 +145,7 @@ async def get_current_user(
         raw_key=principal.raw_key,
         key_type=principal.key_type,
     )
+
 
 class VerifyResponse(BaseModel):
     authenticated: bool = True
