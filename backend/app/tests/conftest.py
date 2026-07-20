@@ -19,7 +19,7 @@ from app.db.base import Base
 from app.main import app as fastapi_app
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 async def client():
     transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
