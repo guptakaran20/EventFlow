@@ -79,7 +79,6 @@ export default function WorkersPage() {
               return !isStale && worker.status !== "OFFLINE";
             }).map((worker) => {
               const lastHeartbeat = worker.last_heartbeat_at ? new Date(worker.last_heartbeat_at) : null;
-              const isStale = worker.heartbeat_age_seconds !== null && worker.heartbeat_age_seconds > 30;
 
               return (
                 <tr key={worker.worker_id} data-row className="hover:bg-surface-hover transition-colors">

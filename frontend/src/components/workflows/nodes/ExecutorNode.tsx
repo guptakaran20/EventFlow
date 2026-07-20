@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 export type ExecutorNodeData = {
   type: string;
   name: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   isInvalid?: boolean;
 };
 
@@ -40,7 +40,7 @@ export function ExecutorNode({ data, selected }: NodeProps<ExecutorFlowNode>) {
         selected ? "border-transparent" : "border-border",
         data.isInvalid && "!border-danger"
       )}
-      style={{ ["--node-accent" as any]: data.isInvalid ? "var(--danger)" : accent }}
+      style={{ "--node-accent": data.isInvalid ? "var(--danger)" : accent } as React.CSSProperties}
     >
       <Handle type="target" position={Position.Top} />
 
@@ -74,12 +74,12 @@ export function ExecutorNode({ data, selected }: NodeProps<ExecutorFlowNode>) {
           <div className="text-[10px] text-foreground-faint font-mono truncate border-t border-border/60 pt-2">
             {data.type === "http" && (
               <>
-                <span className="text-foreground-muted">{data.config.method}</span>{" "}
-                {data.config.url || "—"}
+                <span className="text-foreground-muted">{data.config.method as string}</span>{" "}
+                {(data.config.url as string) || "—"}
               </>
             )}
-            {data.type === "delay" && <>wait {data.config.duration_seconds}s</>}
-            {data.type === "condition" && data.config.expression}
+            {data.type === "delay" && <>wait {data.config.duration_seconds as number}s</>}
+            {data.type === "condition" && (data.config.expression as string)}
           </div>
         </div>
       ) : null}

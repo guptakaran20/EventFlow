@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Icons } from "@/components/icons";
@@ -30,7 +30,6 @@ function crumbsFor(pathname: string): { label: string; href: string }[] {
 }
 
 export function TopBar({ onMenu }: { onMenu?: () => void }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -43,6 +42,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
 
   useEffect(() => {
     if (me?.raw_key) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setApiKey(me.raw_key);
     } else {
       setApiKey(localStorage.getItem("eventflow_auth_status") ? "active" : null); // fallback to token or null while loading
@@ -50,7 +50,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
   }, [me]);
 
   // Backend reachability — piggyback on the metrics query the sidebar already runs
-  const { isError, isSuccess, isLoading } = useQuery({
+  const { isError, isSuccess } = useQuery({
     queryKey: ["metrics", "summary"],
     queryFn: () => api.get("/metrics/summary"),
     refetchInterval: 5000,

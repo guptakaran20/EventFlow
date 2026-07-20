@@ -82,10 +82,10 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
   const { layoutedNodes, layoutedEdges } = useMemo(() => {
     const nodesList = workflow.nodes || [];
     const seenIds = new Set<string>();
-    const rawNodes: FlowNode<ExecutorNodeData>[] = nodesList.map((n) => {
+    const rawNodes: FlowNode<ExecutorNodeData>[] = nodesList.map((n, index) => {
       let id = n.id;
       if (!id || seenIds.has(id)) {
-        id = `node_${Math.random().toString(36).substring(2, 9)}`;
+        id = `node_auto_${index}`;
       }
       seenIds.add(id);
       return {
@@ -102,10 +102,10 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
 
     const edgesList = workflow.edges || [];
     const rawEdges: FlowEdge[] = edgesList
-      .filter((e) => (e.from || (e as any).source) && (e.to || (e as any).target))
+      .filter((e) => (e.from || (e as Record<string, unknown>).source) && (e.to || (e as Record<string, unknown>).target))
       .map((e) => {
-        const source = e.from || (e as any).source;
-        const target = e.to || (e as any).target;
+        const source = (e.from || (e as Record<string, unknown>).source) as string;
+        const target = (e.to || (e as Record<string, unknown>).target) as string;
         return {
           id: `${source}-${target}`,
           source,
@@ -215,7 +215,7 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
     [nodes, edges, notifyChange]
   );
 
-  const onNodeClick = useCallback((_: any, node: FlowNode) => {
+  const onNodeClick = useCallback((_: React.MouseEvent, node: FlowNode) => {
     setSelectedNodeId(node.id);
   }, []);
 
@@ -223,7 +223,7 @@ export function ReactFlowEditor({ workflow, onChange }: ReactFlowEditorProps) {
     setSelectedNodeId(null);
   }, []);
 
-  const handleUpdateConfig = useCallback((nodeId: string, name: string, config: Record<string, any>) => {
+  const handleUpdateConfig = useCallback((nodeId: string, name: string, config: Record<string, unknown>) => {
     const nextNodes = nodes.map((n) => {
       if (n.id === nodeId) {
         return { ...n, data: { ...n.data, name, config } };

@@ -67,8 +67,8 @@ export default function LoginPage() {
       } else {
         setError("Invalid API key");
       }
-    } catch (err: any) {
-      setError(err.message || "Authentication failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }

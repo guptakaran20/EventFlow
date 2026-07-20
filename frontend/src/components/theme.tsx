@@ -38,6 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const t = initialTheme();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(t);
     apply(t);
   }, []);

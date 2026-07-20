@@ -4,7 +4,9 @@ import React from "react";
 import { twMerge } from "tailwind-merge";
 import clsx from "clsx";
 
-export const cn = (...inputs: any[]) => twMerge(clsx(inputs));
+import { type ClassValue } from "clsx";
+
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
 /* ---------------- Button ---------------- */
 

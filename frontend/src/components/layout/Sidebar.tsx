@@ -14,7 +14,7 @@ type BadgeKey = "active_executions" | "dead_letter_jobs" | "active_workers";
 type NavItem = {
   href: string;
   label: string;
-  icon: (props: any) => React.ReactElement;
+  icon: React.ComponentType<{ className?: string }>;
   badge?: BadgeKey;
   danger?: boolean;
 };

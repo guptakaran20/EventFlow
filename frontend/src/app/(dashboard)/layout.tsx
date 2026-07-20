@@ -22,6 +22,7 @@ export default function DashboardLayout({
       router.push("/login");
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
   }, [router]);
 

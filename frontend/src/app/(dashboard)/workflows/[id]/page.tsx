@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { WorkflowDetailResponse } from "@/lib/types";
+import { WorkflowDetailResponse, WorkflowVersionResponse } from "@/lib/types";
 import { Icons } from "@/components/icons";
 import { Button, PageHeader } from "@/components/ui";
 import { format } from "date-fns";
@@ -84,6 +84,7 @@ export default function WorkflowEditorPage() {
       if (workflow.versions && workflow.versions.length > 0) {
         const latestVersion = [...workflow.versions].sort((a, b) => b.version_number - a.version_number)[0];
         if (latestVersion.definition) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setJson(JSON.stringify(latestVersion.definition, null, 2));
           return;
         }
@@ -99,15 +100,15 @@ export default function WorkflowEditorPage() {
   }, [workflow]);
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: Record<string, unknown>) => {
       if (isNew) {
-        return api.post<WorkflowDetailResponse>("/workflows", {
+        return api.post<WorkflowVersionResponse>("/workflows", {
           name: payload.name,
           description: payload.description,
           definition: payload
         });
       } else {
-        return api.post<any>(`/workflows/${params.id}/versions`, { definition: payload });
+        return api.post<WorkflowVersionResponse>(`/workflows/${params.id}/versions`, { definition: payload });
       }
     },
     onSuccess: (data) => {
@@ -127,7 +128,7 @@ export default function WorkflowEditorPage() {
 
   const startExecutionMutation = useMutation({
     mutationFn: async (versionId: string) => {
-      return api.post<any>("/executions", {
+      return api.post<{ id: string }>("/executions", {
         workflow_version_id: versionId,
         input_payload: {}
       });
@@ -154,7 +155,7 @@ export default function WorkflowEditorPage() {
     try {
       const parsed = JSON.parse(json);
       saveMutation.mutate(parsed);
-    } catch (e) {
+    } catch {
       setValidationError("Invalid JSON format");
     }
   };
@@ -312,7 +313,7 @@ export default function WorkflowEditorPage() {
                       onChange={(wf) => setJson(JSON.stringify(wf, null, 2))}
                     />
                   );
-                } catch (e) {
+                } catch {
                   return (
                     <div className="p-4 text-danger text-sm">
                       Invalid JSON. Please fix it in the JSON Code view before using the visual editor.

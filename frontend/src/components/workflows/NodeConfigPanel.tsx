@@ -5,7 +5,7 @@ import { Icons } from "@/components/icons";
 
 interface NodeConfigPanelProps {
   selectedNode: FlowNode<ExecutorNodeData> | null;
-  onUpdateConfig: (nodeId: string, name: string, config: Record<string, any>) => void;
+  onUpdateConfig: (nodeId: string, name: string, config: Record<string, unknown>) => void;
   onClose: () => void;
 }
 
@@ -21,7 +21,7 @@ export function NodeConfigPanel({ selectedNode, onUpdateConfig, onClose }: NodeC
     onUpdateConfig(id, e.target.value, config);
   };
 
-  const handleConfigChange = (key: string, value: any) => {
+  const handleConfigChange = (key: string, value: unknown) => {
     onUpdateConfig(id, name, { ...config, [key]: value });
   };
 
@@ -64,7 +64,7 @@ export function NodeConfigPanel({ selectedNode, onUpdateConfig, onClose }: NodeC
               <div className="space-y-2">
                 <label className="text-xs text-foreground-muted">Method</label>
                 <select
-                  value={config.method || "GET"}
+                  value={(config.method as string) || "GET"}
                   onChange={(e) => handleConfigChange("method", e.target.value)}
                   className="w-full bg-surface-2 border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                 >
@@ -79,7 +79,7 @@ export function NodeConfigPanel({ selectedNode, onUpdateConfig, onClose }: NodeC
                 <label className="text-xs text-foreground-muted">URL</label>
                 <input
                   type="text"
-                  value={config.url || ""}
+                  value={(config.url as string) || ""}
                   onChange={(e) => handleConfigChange("url", e.target.value)}
                   className="w-full bg-surface-2 border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground font-mono"
                   placeholder="https://api.example.com"
@@ -88,7 +88,7 @@ export function NodeConfigPanel({ selectedNode, onUpdateConfig, onClose }: NodeC
               <div className="space-y-2">
                 <label className="text-xs text-foreground-muted">Headers (JSON)</label>
                 <textarea
-                  value={typeof config.headers === 'object' ? JSON.stringify(config.headers, null, 2) : config.headers || ""}
+                  value={typeof config.headers === 'object' ? JSON.stringify(config.headers, null, 2) : (config.headers as string) || ""}
                   onChange={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value);
@@ -110,7 +110,7 @@ export function NodeConfigPanel({ selectedNode, onUpdateConfig, onClose }: NodeC
               <input
                 type="number"
                 min="0"
-                value={config.duration_seconds || 0}
+                value={(config.duration_seconds as number) || 0}
                 onChange={(e) => handleConfigChange("duration_seconds", parseInt(e.target.value, 10))}
                 className="w-full bg-surface-2 border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
               />
@@ -122,7 +122,7 @@ export function NodeConfigPanel({ selectedNode, onUpdateConfig, onClose }: NodeC
               <label className="text-xs text-foreground-muted">Expression (JMESPath/JS-like)</label>
               <input
                 type="text"
-                value={config.expression || ""}
+                value={(config.expression as string) || ""}
                 onChange={(e) => handleConfigChange("expression", e.target.value)}
                 className="w-full bg-surface-2 border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground font-mono"
                 placeholder="status == 'success'"
