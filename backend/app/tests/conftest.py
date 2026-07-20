@@ -5,13 +5,13 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # Inject required environment variables for tests before any app code is imported
-os.environ["DATABASE_URL"] = (
-    "postgresql+asyncpg://eventflow:eventflow@localhost:15432/eventflow_test"
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://eventflow:eventflow@localhost:15432/eventflow_test"
 )
-os.environ["REDIS_URL"] = "redis://localhost:6379/1"
-os.environ["JWT_ACCESS_SECRET_KEY"] = "test-secret-access"
-os.environ["JWT_REFRESH_SECRET_KEY"] = "test-secret-refresh"
-os.environ["EVENTFLOW_INTERNAL_TRANSPORT"] = "local"
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
+os.environ.setdefault("JWT_ACCESS_SECRET_KEY", "test-secret-access")
+os.environ.setdefault("JWT_REFRESH_SECRET_KEY", "test-secret-refresh")
+os.environ.setdefault("EVENTFLOW_INTERNAL_TRANSPORT", "local")
 
 import app.models  # noqa: F401
 from app.core.config import get_settings
