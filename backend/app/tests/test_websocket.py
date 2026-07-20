@@ -346,7 +346,7 @@ async def test_ws_broadcast_failure_does_not_prevent_commit(
 
     sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "test-token"})
     try:
-        with sync_client.websocket_connect(f"/api/v1/ws/executions/{execution_id}") as ws:
+        with sync_client.websocket_connect(f"/api/v1/ws/executions/{execution_id}"):
             pass
     except Exception:
         pass
