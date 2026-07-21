@@ -70,6 +70,8 @@ export default function WorkflowEditorPage() {
   const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
   const [showHistory, setShowHistory] = useState(false);
   const [showSchema, setShowSchema] = useState(false);
+  const [showRunModal, setShowRunModal] = useState(false);
+  const [runPayload, setRunPayload] = useState("{\n  \n}");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -127,13 +129,14 @@ export default function WorkflowEditorPage() {
   });
 
   const startExecutionMutation = useMutation({
-    mutationFn: async (versionId: string) => {
+    mutationFn: async ({ versionId, payload }: { versionId: string; payload: Record<string, unknown> }) => {
       return api.post<{ id: string }>("/executions", {
         workflow_version_id: versionId,
-        input_payload: {}
+        input_payload: payload
       });
     },
     onSuccess: (data) => {
+      setShowRunModal(false);
       router.push(`/executions/${data.id}`);
     }
   });
@@ -162,8 +165,22 @@ export default function WorkflowEditorPage() {
 
   const handleStart = () => {
     if (!workflow || workflow.versions.length === 0) return;
+    setShowRunModal(true);
+  };
+
+  const confirmRun = () => {
+    if (!workflow || workflow.versions.length === 0) return;
     const latestVersion = workflow.versions.sort((a, b) => b.version_number - a.version_number)[0];
-    startExecutionMutation.mutate(latestVersion.id);
+    let payload = {};
+    try {
+      if (runPayload.trim()) {
+        payload = JSON.parse(runPayload);
+      }
+    } catch {
+      toast("Invalid JSON payload");
+      return;
+    }
+    startExecutionMutation.mutate({ versionId: latestVersion.id, payload });
   };
 
   const handleDelete = () => {
@@ -374,6 +391,49 @@ export default function WorkflowEditorPage() {
         </div>
         )}
       </div>
+      {/* Run Modal */}
+      {showRunModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div 
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm" 
+            onClick={() => setShowRunModal(false)}
+          />
+          <div className="relative bg-surface border border-border shadow-2xl rounded-lg w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-5 h-14 border-b border-border bg-surface-2 shrink-0">
+              <h2 className="font-serif text-xl text-foreground">Run Workflow</h2>
+              <button 
+                onClick={() => setShowRunModal(false)}
+                className="text-foreground-muted hover:text-foreground transition-colors"
+              >
+                <Icons.Close className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <p className="text-sm text-foreground-muted">
+                Provide an optional JSON input payload for this execution.
+              </p>
+              <textarea
+                value={runPayload}
+                onChange={(e) => setRunPayload(e.target.value)}
+                className="w-full h-40 bg-surface-2 border border-border p-3 font-mono text-[13px] text-foreground rounded focus:outline-none focus:border-foreground-muted resize-none"
+                spellCheck={false}
+              />
+              <div className="flex justify-end gap-3 mt-2">
+                <Button variant="secondary" onClick={() => setShowRunModal(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={confirmRun} 
+                  disabled={startExecutionMutation.isPending}
+                >
+                  {startExecutionMutation.isPending ? "Starting..." : "Start Execution"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Schema Modal */}
       {showSchema && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">

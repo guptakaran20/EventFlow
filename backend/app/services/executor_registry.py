@@ -66,17 +66,20 @@ def evaluate_condition_expression(expression: str, data: dict[str, Any]) -> bool
     left = _resolve_path(data, left_path)
     right = _parse_literal(right_raw)
 
-    if operator == "==":
-        return left == right
-    if operator == "!=":
-        return left != right
-    if operator == ">":
-        return left > right
-    if operator == "<":
-        return left < right
-    if operator == ">=":
-        return left >= right
-    return left <= right
+    try:
+        if operator == "==":
+            return left == right
+        if operator == "!=":
+            return left != right
+        if operator == ">":
+            return left > right
+        if operator == "<":
+            return left < right
+        if operator == ">=":
+            return left >= right
+        return left <= right
+    except TypeError as e:
+        raise AppError(f"Type error evaluating condition: {e}", code="evaluation_error") from e
 
 
 class Executor(Protocol):
