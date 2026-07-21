@@ -76,6 +76,13 @@ def create_app() -> FastAPI:
 
     from fastapi.middleware.cors import CORSMiddleware
 
+    from app.api.middleware.rate_limit import RateLimitMiddleware
+
+    # RateLimitMiddleware must be added BEFORE CORSMiddleware 
+    # so that CORSMiddleware is the outermost wrapper and can attach 
+    # CORS headers even if RateLimitMiddleware intercepts with a 429.
+    app.add_middleware(RateLimitMiddleware)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,

@@ -13,6 +13,7 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
 os.environ.setdefault("JWT_ACCESS_SECRET_KEY", "test-secret-access")
 os.environ.setdefault("JWT_REFRESH_SECRET_KEY", "test-secret-refresh")
 os.environ.setdefault("EVENTFLOW_INTERNAL_TRANSPORT", "local")
+os.environ.setdefault("RATE_LIMIT_REQUESTS", "100000")
 
 import app.models  # noqa: F401
 from app.core.config import get_settings

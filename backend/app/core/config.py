@@ -59,6 +59,10 @@ class Settings(BaseSettings):
         "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
     )
 
+    # Rate Limiting
+    rate_limit_requests: int = 100
+    rate_limit_window_seconds: int = 60
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

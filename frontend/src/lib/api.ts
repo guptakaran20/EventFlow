@@ -125,5 +125,17 @@ export const api = {
   },
 
   // Get current user info
-  me: async () => request<{ raw_key: string; key_type: string }>("/auth/me")
+  me: async () => request<{ raw_key: string; key_type: string }>("/auth/me"),
+  
+  createDemoKey: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/demo-key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!response.ok) {
+      throw new Error("Failed to create demo API key");
+    }
+    const data = await response.json();
+    return data.raw_key as string;
+  }
 };

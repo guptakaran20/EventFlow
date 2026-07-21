@@ -157,3 +157,17 @@ async def verify(
 ) -> VerifyResponse:
     """Protected test endpoint proving API-key auth is enforced."""
     return VerifyResponse()
+
+
+class DemoKeyResponse(BaseModel):
+    raw_key: str
+
+
+@router.post("/demo-key", response_model=DemoKeyResponse)
+async def create_demo_key(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+) -> DemoKeyResponse:
+    """Generate a demo API key."""
+    from app.services.api_key_service import APIKeyService
+    api_key, raw_key = await APIKeyService(db).create("Demo Key")
+    return DemoKeyResponse(raw_key=raw_key)
