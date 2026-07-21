@@ -43,4 +43,15 @@ async def test_get_worker_api(client, db: AsyncSession, auth_headers):
     body = response.json()
     assert body["worker_id"] == str(worker.id)
     assert body["hostname"] == "host-single"
-    assert body["status"] == WorkerStatus.STARTING
+    assert body["status"] == WorkerStatus.STARTING.value
+
+
+@pytest.mark.asyncio
+async def test_spawn_worker_limit_exceeded(client, auth_headers, monkeypatch):
+    from app.worker import background
+
+    monkeypatch.setattr(background, "get_active_worker_count", lambda: 5)
+
+    response = await client.post("/api/v1/workers/spawn", headers=auth_headers)
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "worker_limit_reached"

@@ -77,6 +77,9 @@ def create_app() -> FastAPI:
     from fastapi.middleware.cors import CORSMiddleware
 
     from app.api.middleware.rate_limit import RateLimitMiddleware
+    from app.api.middleware.security_headers import SecurityHeadersMiddleware
+
+    app.add_middleware(SecurityHeadersMiddleware)
 
     # RateLimitMiddleware must be added BEFORE CORSMiddleware 
     # so that CORSMiddleware is the outermost wrapper and can attach 

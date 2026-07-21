@@ -1,4 +1,3 @@
-import asyncio
 import uuid
 from typing import Annotated
 
@@ -7,7 +6,7 @@ from fastapi import APIRouter, Depends
 from app.core.security import require_api_key
 from app.schemas.worker import WorkerResponse
 from app.services.worker_service import WorkerService, get_worker_service
-from app.worker.background import start_background_worker
+from app.worker.background import spawn_background_worker_task
 
 router = APIRouter(prefix="/api/v1/workers", tags=["workers"])
 
@@ -37,5 +36,5 @@ async def get_worker(
 async def spawn_worker(
     _: Annotated[object, Depends(require_api_key)],
 ):
-    asyncio.create_task(start_background_worker())
+    spawn_background_worker_task()
     return {"message": "Spawned new worker in background"}

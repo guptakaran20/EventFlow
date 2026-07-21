@@ -4,6 +4,7 @@ import socket
 import uuid
 
 from app.core.config import get_settings
+from app.core.errors import AppError
 from app.db.session import get_session_factory
 from app.models.enums import WorkerStatus
 from app.queue.publisher import InMemoryQueuePublisher, RedisStreamQueuePublisher
@@ -13,6 +14,26 @@ from app.services.worker_service import WorkerService
 from app.worker.heartbeat import HeartbeatController, run_heartbeat_loop
 from app.worker.recovery import run_recovery_loop
 from app.worker.runtime import run_worker
+
+_active_background_tasks: set[asyncio.Task] = set()
+MAX_SPAWNED_WORKERS = 5
+
+
+def get_active_worker_count() -> int:
+    return len([t for t in _active_background_tasks if not t.done()])
+
+
+def spawn_background_worker_task() -> asyncio.Task:
+    if get_active_worker_count() >= MAX_SPAWNED_WORKERS:
+        raise AppError(
+            f"Maximum background worker limit reached (max {MAX_SPAWNED_WORKERS})",
+            code="worker_limit_reached",
+            status_code=429,
+        )
+    task = asyncio.create_task(start_background_worker())
+    _active_background_tasks.add(task)
+    task.add_done_callback(_active_background_tasks.discard)
+    return task
 
 
 async def start_background_worker():
