@@ -419,7 +419,7 @@ export default function WorkflowEditorPage() {
                 spellCheck={false}
               />
               <div className="flex justify-end gap-3 mt-2">
-                <Button variant="secondary" onClick={() => setShowRunModal(false)}>
+                <Button variant="outline" onClick={() => setShowRunModal(false)}>
                   Cancel
                 </Button>
                 <Button 
