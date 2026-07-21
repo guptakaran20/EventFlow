@@ -1,15 +1,64 @@
 import asyncio
+import ipaddress
 import json
 import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 import httpx
 
 from app.core.errors import AppError
 
 logger = logging.getLogger("app.executors")
+
+
+async def validate_outbound_url(url: str) -> None:
+    if not isinstance(url, str):
+        raise AppError("URL must be a string", code="invalid_executor_config")
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise AppError("URL scheme must be http or https", code="invalid_executor_config")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise AppError("Invalid URL: missing hostname", code="invalid_executor_config")
+
+    if hostname.lower() in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+        raise AppError(
+            "Access to local hostnames is forbidden (SSRF Protection)", code="ssrf_blocked"
+        )
+
+    try:
+        loop = asyncio.get_running_loop()
+        addr_info = await loop.getaddrinfo(hostname, None)
+    except Exception as e:
+        raise AppError(f"Failed to resolve hostname '{hostname}': {e}", code="ssrf_blocked") from e
+
+    for _family, sockaddr in [(info[0], info[4]) for info in addr_info]:
+        ip_str = sockaddr[0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+            if (
+                ip.is_private
+                or ip.is_loopback
+                or ip.is_link_local
+                or ip.is_reserved
+                or ip.is_multicast
+                or ip.is_unspecified
+                or str(ip) in ("169.254.169.254", "169.254.170.2")
+            ):
+                raise AppError(
+                    f"Access to private/reserved IP address ({ip_str}) is forbidden "
+                    "(SSRF Protection)",
+                    code="ssrf_blocked",
+                )
+        except ValueError as err:
+            raise AppError(
+                f"Invalid IP address format: {ip_str}", code="ssrf_blocked"
+            ) from err
 
 
 @dataclass
@@ -103,6 +152,17 @@ class HttpExecutor:
 
     async def execute(self, context: ExecutionContext) -> ExecutorResult:
         config = context.config
+        url = config["url"]
+        try:
+            await validate_outbound_url(url)
+        except AppError as exc:
+            logger.warning(
+                "SSRF check blocked http executor request for node %s: %s",
+                context.node_id,
+                exc.message,
+            )
+            return ExecutorResult(success=False, error=f"SSRF Blocked: {exc.message}")
+
         timeout = config.get("timeout_seconds", 10)
         headers = dict(config.get("headers") or {})
         if context.idempotency_key:
@@ -111,7 +171,7 @@ class HttpExecutor:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.request(
                     config.get("method", "GET").upper(),
-                    config["url"],
+                    url,
                     headers=headers,
                     params=config.get("query"),
                     json=config.get("body"),
@@ -228,6 +288,17 @@ class WebhookExecutor:
 
     async def execute(self, context: ExecutionContext) -> ExecutorResult:
         config = context.config
+        target_url = config["target_url"]
+        try:
+            await validate_outbound_url(target_url)
+        except AppError as exc:
+            logger.warning(
+                "SSRF check blocked webhook executor request for node %s: %s",
+                context.node_id,
+                exc.message,
+            )
+            return ExecutorResult(success=False, error=f"SSRF Blocked: {exc.message}")
+
         timeout = config.get("timeout_seconds", 10)
         headers = dict(config.get("headers") or {})
         if context.idempotency_key:
@@ -235,7 +306,7 @@ class WebhookExecutor:
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
-                    config["target_url"],
+                    target_url,
                     headers=headers,
                     json=config.get("payload_template"),
                 )

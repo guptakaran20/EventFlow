@@ -31,7 +31,7 @@ function crumbsFor(pathname: string): { label: string; href: string }[] {
 
 export function TopBar({ onMenu }: { onMenu?: () => void }) {
   const pathname = usePathname();
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isAuth, setIsAuth] = useState<boolean>(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const { data: me } = useQuery({
@@ -41,11 +41,11 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
   });
 
   useEffect(() => {
-    if (me?.raw_key) {
+    if (me?.api_key_id) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setApiKey(me.raw_key);
+      setIsAuth(true);
     } else {
-      setApiKey(localStorage.getItem("eventflow_auth_status") ? "active" : null); // fallback to token or null while loading
+      setIsAuth(Boolean(localStorage.getItem("eventflow_auth_status")));
     }
   }, [me]);
 
@@ -63,9 +63,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
   };
 
   const crumbs = crumbsFor(pathname);
-  const maskedKey = apiKey && apiKey !== "active"
-    ? `${apiKey.slice(0, 4)}${"•".repeat(6)}${apiKey.slice(-3)}`
-    : "";
+  const keyDisplayName = me?.name || "Connected Key";
 
   return (
     <header className="h-16 border-b border-border bg-background/80 backdrop-blur-sm flex items-center px-4 md:px-6 justify-between shrink-0 sticky top-0 z-20 gap-3">
@@ -122,7 +120,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
         <ThemeToggle />
 
         {/* Account menu */}
-        {apiKey && (
+        {isAuth && (
           <div className="relative">
             <button
               onClick={() => setMenuOpen((o) => !o)}
@@ -131,7 +129,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
               aria-expanded={menuOpen}
             >
               <span className="w-1.5 h-1.5 bg-foreground rounded-full" />
-              <span className="hidden sm:inline">{maskedKey}</span>
+              <span className="hidden sm:inline">{keyDisplayName}</span>
               <Icons.ChevronDown className={cn("w-3.5 h-3.5 transition-transform", menuOpen && "rotate-180")} />
             </button>
 
@@ -144,7 +142,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
                 >
                   <div className="px-3 py-3 border-b border-border">
                     <div className="label-caps mb-1.5">API Key</div>
-                    <div className="font-mono text-xs text-foreground truncate">{maskedKey}</div>
+                    <div className="font-mono text-xs text-foreground truncate">{keyDisplayName}</div>
                     <div className="flex items-center gap-1.5 mt-2 text-[11px] font-mono text-foreground-muted">
                       <span
                         className={cn(

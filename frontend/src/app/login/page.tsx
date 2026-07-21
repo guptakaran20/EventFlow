@@ -15,8 +15,6 @@ export default function LoginPage() {
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [demoKey, setDemoKey] = useState("");
-  const [generatingKey, setGeneratingKey] = useState(false);
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
 
@@ -76,20 +74,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleGenerateKey = async () => {
-    setGeneratingKey(true);
-    setError("");
-    try {
-      const key = await api.createDemoKey();
-      setDemoKey(key);
-      setApiKey(key);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to generate demo key");
-    } finally {
-      setGeneratingKey(false);
-    }
-  };
-
   return (
     <div ref={root} className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-5 right-5 z-20">
@@ -128,7 +112,7 @@ export default function LoginPage() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className="w-full bg-surface border border-border-strong px-4 h-11 text-sm focus:outline-none focus:border-foreground transition-colors font-mono"
-              placeholder="ef_..."
+              placeholder="efk_..."
               required
             />
           </div>
@@ -148,51 +132,8 @@ export default function LoginPage() {
           >
             {loading ? "Authenticating…" : "Proceed to Dashboard"}
           </button>
-          
-          <div data-field className="text-center mt-4 pt-2 border-t border-border-strong">
-            <button
-              type="button"
-              onClick={handleGenerateKey}
-              disabled={generatingKey}
-              className="text-sm text-foreground-muted hover:text-foreground underline transition-colors disabled:opacity-50 disabled:no-underline"
-            >
-              {generatingKey ? "Generating key..." : "Need a key? Generate a API key"}
-            </button>
-          </div>
         </form>
       </div>
-
-      {demoKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="bg-surface border border-border-strong p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-serif">API Key Generated</h3>
-            <p className="text-sm text-foreground-muted">
-              Please copy your API key. It will only be shown once. It has been automatically filled in for you.
-            </p>
-            <div className="bg-background border border-border p-3 font-mono text-sm break-all">
-              {demoKey}
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(demoKey);
-                }}
-                className="px-4 py-2 text-sm border border-border hover:bg-surface-hover transition-colors"
-              >
-                Copy
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoKey("")}
-                className="px-4 py-2 text-sm bg-inverse text-inverse-foreground hover:opacity-90 transition-opacity"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

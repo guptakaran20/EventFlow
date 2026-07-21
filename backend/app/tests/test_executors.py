@@ -106,3 +106,31 @@ def test_execution_context_idempotency_key_defaults_empty():
         attempt=1,
     )
     assert context.idempotency_key == ""
+
+
+@pytest.mark.asyncio
+async def test_http_executor_blocks_ssrf_loopback():
+    executor = HttpExecutor()
+    context = _make_context({"method": "GET", "url": "http://127.0.0.1:8000/api"})
+    result = await executor.execute(context)
+    assert result.success is False
+    assert "SSRF Blocked" in result.error
+
+
+@pytest.mark.asyncio
+async def test_http_executor_blocks_ssrf_metadata():
+    executor = HttpExecutor()
+    context = _make_context({"method": "GET", "url": "http://169.254.169.254/latest/meta-data/"})
+    result = await executor.execute(context)
+    assert result.success is False
+    assert "SSRF Blocked" in result.error
+
+
+@pytest.mark.asyncio
+async def test_webhook_executor_blocks_ssrf():
+    executor = WebhookExecutor()
+    context = _make_context({"target_url": "http://localhost:5432"})
+    result = await executor.execute(context)
+    assert result.success is False
+    assert "SSRF Blocked" in result.error
+

@@ -19,9 +19,7 @@ _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=
 
 @dataclass
 class AuthenticatedPrincipal:
-    raw_key: str
-    key_type: str
-    api_key_id: uuid.UUID | None = None
+    api_key_id: uuid.UUID
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
@@ -56,7 +54,7 @@ async def authenticate_api_key(
     api_key: str | None,
     db: AsyncSession,
 ) -> AuthenticatedPrincipal:
-    """Validate a raw API key value against bootstrap and DB-backed keys.
+    """Validate a raw API key value against DB-backed keys.
 
     Used by the login endpoint to exchange a raw API key for a JWT.
     """
@@ -71,7 +69,7 @@ async def authenticate_api_key(
     if db_key is not None:
         db_key.last_used_at = datetime.now(UTC)
         await db.commit()
-        return AuthenticatedPrincipal(raw_key=api_key, key_type="db", api_key_id=db_key.id)
+        return AuthenticatedPrincipal(api_key_id=db_key.id)
 
     raise AppError(
         "Invalid API key",
@@ -84,11 +82,7 @@ async def resolve_api_key_id(
     principal: AuthenticatedPrincipal,
     db: AsyncSession,
 ) -> uuid.UUID:
-    """Resolve an AuthenticatedPrincipal into a database APIKey UUID.
-
-    If the principal is a bootstrap key, this lazily creates a dummy
-    database record so foreign key constraints are satisfied.
-    """
+    """Resolve an AuthenticatedPrincipal into a database APIKey UUID."""
     if principal.api_key_id is None:
         raise AppError("Missing API key ID", code="unauthorized", status_code=401)
 
@@ -107,19 +101,16 @@ async def get_current_principal_from_token(token: str | None) -> AuthenticatedPr
         if payload.get("type") != "access":
             raise AppError("Invalid token type", code="invalid_token", status_code=401)
 
-        raw_key = payload.get("raw_key")
-        key_type = payload.get("key_type")
         api_key_id_str = payload.get("api_key_id")
-
-        if raw_key is None or key_type is None:
+        if not api_key_id_str:
             raise AppError("Invalid token payload", code="invalid_token", status_code=401)
 
-        api_key_id = uuid.UUID(api_key_id_str) if api_key_id_str else None
-        return AuthenticatedPrincipal(raw_key=raw_key, key_type=key_type, api_key_id=api_key_id)
+        api_key_id = uuid.UUID(api_key_id_str)
+        return AuthenticatedPrincipal(api_key_id=api_key_id)
 
     except jwt.ExpiredSignatureError:
         raise AppError("Token expired", code="token_expired", status_code=401) from None
-    except jwt.PyJWTError:
+    except (jwt.PyJWTError, ValueError):
         raise AppError("Invalid token", code="invalid_token", status_code=401) from None
 
 

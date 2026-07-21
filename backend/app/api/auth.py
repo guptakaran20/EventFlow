@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 import jwt
@@ -15,6 +16,7 @@ from app.core.security import (
     require_api_key,
 )
 from app.db.session import get_db_session
+from app.models.api_key import APIKey
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -42,9 +44,7 @@ async def login_for_access_token(
     principal = await authenticate_api_key(request.api_key, db)
 
     token_data = {
-        "raw_key": principal.raw_key,
-        "key_type": principal.key_type,
-        "api_key_id": str(principal.api_key_id) if principal.api_key_id else None,
+        "api_key_id": str(principal.api_key_id),
     }
 
     access_token = create_access_token(data=token_data)
@@ -90,10 +90,12 @@ async def refresh_access_token(
         if payload.get("type") != "refresh":
             raise AppError("Invalid token type", code="invalid_token", status_code=401)
 
+        api_key_id_str = payload.get("api_key_id")
+        if not api_key_id_str:
+            raise AppError("Invalid token payload", code="invalid_token", status_code=401)
+
         token_data = {
-            "raw_key": payload.get("raw_key"),
-            "key_type": payload.get("key_type"),
-            "api_key_id": payload.get("api_key_id"),
+            "api_key_id": api_key_id_str,
         }
 
         access_token = create_access_token(data=token_data)
@@ -132,18 +134,22 @@ async def logout(response: Response):
 
 
 class MeResponse(BaseModel):
-    raw_key: str
-    key_type: str
+    api_key_id: uuid.UUID
+    name: str
 
 
 @router.get("/me", response_model=MeResponse)
 async def get_current_user(
     principal: Annotated[AuthenticatedPrincipal, Depends(require_api_key)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> MeResponse:
-    """Returns information about the currently authenticated user/key."""
+    """Returns information about the currently authenticated API key."""
+    api_key_obj = await db.get(APIKey, principal.api_key_id)
+    if api_key_obj is None:
+        raise AppError("API key not found", code="unauthorized", status_code=401)
     return MeResponse(
-        raw_key=principal.raw_key,
-        key_type=principal.key_type,
+        api_key_id=api_key_obj.id,
+        name=api_key_obj.name,
     )
 
 
@@ -158,16 +164,3 @@ async def verify(
     """Protected test endpoint proving API-key auth is enforced."""
     return VerifyResponse()
 
-
-class DemoKeyResponse(BaseModel):
-    raw_key: str
-
-
-@router.post("/demo-key", response_model=DemoKeyResponse)
-async def create_demo_key(
-    db: Annotated[AsyncSession, Depends(get_db_session)],
-) -> DemoKeyResponse:
-    """Generate a demo API key."""
-    from app.services.api_key_service import APIKeyService
-    api_key, raw_key = await APIKeyService(db).create("Demo Key")
-    return DemoKeyResponse(raw_key=raw_key)

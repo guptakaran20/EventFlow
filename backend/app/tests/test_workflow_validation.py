@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from httpx import AsyncClient
 
@@ -9,7 +11,7 @@ from app.main import app
 @pytest.fixture(autouse=True)
 def override_auth():
     app.dependency_overrides[require_api_key] = lambda: AuthenticatedPrincipal(
-        raw_key="test-key", key_type="bootstrap"
+        api_key_id=uuid.uuid4()
     )
     yield
     app.dependency_overrides.pop(require_api_key, None)
