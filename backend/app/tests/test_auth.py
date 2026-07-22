@@ -43,4 +43,3 @@ async def test_auth_me_sanitized(client, auth_headers):
 async def test_demo_key_endpoint_removed(client):
     response = await client.post("/api/v1/auth/demo-key")
     assert response.status_code == 404
-

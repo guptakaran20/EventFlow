@@ -36,7 +36,6 @@ async def _redis_pubsub_listener():
         await pubsub.unsubscribe("eventflow:ws")
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(_redis_pubsub_listener())
@@ -81,8 +80,8 @@ def create_app() -> FastAPI:
 
     app.add_middleware(SecurityHeadersMiddleware)
 
-    # RateLimitMiddleware must be added BEFORE CORSMiddleware 
-    # so that CORSMiddleware is the outermost wrapper and can attach 
+    # RateLimitMiddleware must be added BEFORE CORSMiddleware
+    # so that CORSMiddleware is the outermost wrapper and can attach
     # CORS headers even if RateLimitMiddleware intercepts with a 429.
     app.add_middleware(RateLimitMiddleware)
 

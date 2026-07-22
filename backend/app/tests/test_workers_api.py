@@ -16,9 +16,15 @@ async def db(engine) -> AsyncSession:
 
 @pytest.mark.asyncio
 async def test_list_workers_api(client, db: AsyncSession, auth_headers):
+    import jwt
+
+    token = auth_headers["Authorization"].split("Bearer ")[1]
+    payload = jwt.decode(token, options={"verify_signature": False})
+    owner_id = payload["api_key_id"]
+
     service = WorkerService(db)
-    await service.register_worker("api-worker-1", "host-a")
-    await service.register_worker("api-worker-2", "host-b")
+    await service.register_worker("api-worker-1", "host-a", owner_id)
+    await service.register_worker("api-worker-2", "host-b", owner_id)
 
     # Test list endpoint
 
@@ -33,8 +39,14 @@ async def test_list_workers_api(client, db: AsyncSession, auth_headers):
 
 @pytest.mark.asyncio
 async def test_get_worker_api(client, db: AsyncSession, auth_headers):
+    import jwt
+
+    token = auth_headers["Authorization"].split("Bearer ")[1]
+    payload = jwt.decode(token, options={"verify_signature": False})
+    owner_id = payload["api_key_id"]
+
     service = WorkerService(db)
-    worker = await service.register_worker("api-worker-single", "host-single")
+    worker = await service.register_worker("api-worker-single", "host-single", owner_id)
 
     # Test get endpoint
 

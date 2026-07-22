@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, CreatedAtMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.refresh_token import RefreshToken
     from app.models.workflow import Workflow
 
 
@@ -19,3 +20,4 @@ class APIKey(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     workflows: Mapped[list["Workflow"]] = relationship(back_populates="owner_api_key")
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(back_populates="api_key")

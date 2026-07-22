@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.core.errors import AppError
 from app.core.security import require_api_key_id
@@ -23,8 +23,8 @@ async def list_executions(
     owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
     client: Annotated[ExecutionEngineClient, Depends(get_execution_engine_client)],
     status: str | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    limit: Annotated[int, Query(ge=0, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[ExecutionResponse]:
     executions = await client.list_executions(
         owner_api_key_id=owner_id, status=status, limit=limit, offset=offset
@@ -99,8 +99,8 @@ async def get_execution_logs(
     execution_id: uuid.UUID,
     owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
     service: Annotated[ExecutionLogService, Depends(get_execution_log_service)],
-    limit: int = 50,
-    offset: int = 0,
+    limit: Annotated[int, Query(ge=0, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[ExecutionLogResponse]:
     logs = await service.list_logs(execution_id, owner_id, limit=limit, offset=offset)
     return [ExecutionLogResponse.from_log(log) for log in logs]
@@ -111,6 +111,7 @@ async def get_execution_timeline(
     execution_id: uuid.UUID,
     owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
     service: Annotated[ExecutionLogService, Depends(get_execution_log_service)],
+    limit: Annotated[int, Query(ge=0, le=1000)] = 500,
 ) -> list[ExecutionLogResponse]:
-    logs = await service.get_timeline(execution_id, owner_id)
+    logs = await service.get_timeline(execution_id, owner_id, limit=limit)
     return [ExecutionLogResponse.from_log(log) for log in logs]

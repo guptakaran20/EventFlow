@@ -183,8 +183,14 @@ async def test_execution_timeline_chronological(
 async def test_worker_list_shows_heartbeat_age(
     client: AsyncClient, auth_headers: dict, db: AsyncSession
 ):
+    import jwt
+
+    token = auth_headers["Authorization"].split("Bearer ")[1]
+    payload = jwt.decode(token, options={"verify_signature": False})
+    owner_id = payload["api_key_id"]
+
     service = WorkerService(db)
-    worker = await service.register_worker("observability-worker", "obs-host")
+    worker = await service.register_worker("observability-worker", "obs-host", owner_id)
 
     resp = await client.get("/api/v1/workers", headers=auth_headers)
     assert resp.status_code == 200

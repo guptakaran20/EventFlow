@@ -1,9 +1,12 @@
+import hashlib
+import secrets
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-import jwt
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -12,11 +15,11 @@ from app.core.security import (
     AuthenticatedPrincipal,
     authenticate_api_key,
     create_access_token,
-    create_refresh_token,
     require_api_key,
 )
 from app.db.session import get_db_session
 from app.models.api_key import APIKey
+from app.models.refresh_token import RefreshToken
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -48,9 +51,22 @@ async def login_for_access_token(
     }
 
     access_token = create_access_token(data=token_data)
-    refresh_token = create_refresh_token(data=token_data)
 
     settings = get_settings()
+    raw_refresh_token = secrets.token_urlsafe(32)
+    refresh_token_hash = hashlib.sha256(raw_refresh_token.encode("utf-8")).hexdigest()
+    family_id = uuid.uuid4()
+    expires_at = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
+
+    db_rt = RefreshToken(
+        token_hash=refresh_token_hash,
+        family_id=family_id,
+        api_key_id=principal.api_key_id,
+        expires_at=expires_at,
+        is_valid=True,
+    )
+    db.add(db_rt)
+    await db.commit()
 
     response.set_cookie(
         key="eventflow_jwt",
@@ -62,20 +78,21 @@ async def login_for_access_token(
     )
     response.set_cookie(
         key="eventflow_refresh",
-        value=refresh_token,
+        value=raw_refresh_token,
         httponly=True,
         samesite="none",
         secure=True,
         max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=raw_refresh_token)
 
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(
     request: Request,
     response: Response,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     body: RefreshRequest | None = None,
 ) -> TokenResponse:
     settings = get_settings()
@@ -83,51 +100,86 @@ async def refresh_access_token(
     if not token:
         raise AppError("Missing refresh token", code="missing_token", status_code=401)
 
-    try:
-        payload = jwt.decode(
-            token, settings.jwt_refresh_secret_key, algorithms=[settings.jwt_algorithm]
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    stmt = select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    result = await db.execute(stmt)
+    db_rt = result.scalar_one_or_none()
+
+    if db_rt is None:
+        raise AppError("Invalid refresh token", code="invalid_token", status_code=401)
+
+    if not db_rt.is_valid:
+        # Token reuse detected! Invalidate entire family.
+        await db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.family_id == db_rt.family_id)
+            .values(is_valid=False)
         )
-        if payload.get("type") != "refresh":
-            raise AppError("Invalid token type", code="invalid_token", status_code=401)
+        await db.commit()
+        raise AppError("Refresh token reused", code="token_reused", status_code=401)
 
-        api_key_id_str = payload.get("api_key_id")
-        if not api_key_id_str:
-            raise AppError("Invalid token payload", code="invalid_token", status_code=401)
+    if db_rt.expires_at < datetime.now(UTC):
+        raise AppError("Refresh token expired", code="token_expired", status_code=401)
 
-        token_data = {
-            "api_key_id": api_key_id_str,
-        }
+    # Invalidate current token
+    db_rt.is_valid = False
 
-        access_token = create_access_token(data=token_data)
-        refresh_token = create_refresh_token(data=token_data)
+    # Issue new tokens
+    raw_refresh_token = secrets.token_urlsafe(32)
+    new_token_hash = hashlib.sha256(raw_refresh_token.encode("utf-8")).hexdigest()
+    expires_at = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
 
-        response.set_cookie(
-            key="eventflow_jwt",
-            value=access_token,
-            httponly=True,
-            samesite="none",
-            secure=True,
-            max_age=settings.jwt_access_token_expire_minutes * 60,
-        )
-        response.set_cookie(
-            key="eventflow_refresh",
-            value=refresh_token,
-            httponly=True,
-            samesite="none",
-            secure=True,
-            max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
-        )
+    new_db_rt = RefreshToken(
+        token_hash=new_token_hash,
+        family_id=db_rt.family_id,
+        api_key_id=db_rt.api_key_id,
+        expires_at=expires_at,
+        is_valid=True,
+    )
+    db.add(new_db_rt)
+    await db.commit()
 
-        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    token_data = {
+        "api_key_id": str(db_rt.api_key_id),
+    }
+    access_token = create_access_token(data=token_data)
 
-    except jwt.ExpiredSignatureError:
-        raise AppError("Refresh token expired", code="token_expired", status_code=401) from None
-    except jwt.PyJWTError:
-        raise AppError("Invalid refresh token", code="invalid_token", status_code=401) from None
+    response.set_cookie(
+        key="eventflow_jwt",
+        value=access_token,
+        httponly=True,
+        samesite="none",
+        secure=True,
+        max_age=settings.jwt_access_token_expire_minutes * 60,
+    )
+    response.set_cookie(
+        key="eventflow_refresh",
+        value=raw_refresh_token,
+        httponly=True,
+        samesite="none",
+        secure=True,
+        max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
+    )
+
+    return TokenResponse(access_token=access_token, refresh_token=raw_refresh_token)
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    token = request.cookies.get("eventflow_refresh")
+    if token:
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        stmt = select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+        result = await db.execute(stmt)
+        db_rt = result.scalar_one_or_none()
+        if db_rt:
+            db_rt.is_valid = False
+            await db.commit()
+
     response.delete_cookie("eventflow_jwt", httponly=True, samesite="none", secure=True)
     response.delete_cookie("eventflow_refresh", httponly=True, samesite="none", secure=True)
     return {"message": "Logged out successfully"}
@@ -163,4 +215,3 @@ async def verify(
 ) -> VerifyResponse:
     """Protected test endpoint proving API-key auth is enforced."""
     return VerifyResponse()
-

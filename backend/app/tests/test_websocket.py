@@ -152,6 +152,7 @@ async def test_stage_and_flush_preserves_order(monkeypatch):
         sent.append(message)
 
     from app.websocket import broadcaster
+
     monkeypatch.setattr(broadcaster, "_safe_broadcast", fake_broadcast)
 
     await flush_events(session)
@@ -199,7 +200,7 @@ async def test_broadcast_helpers_deliver_each_event_type_to_all_subscribers(monk
 
     async def fake_broadcast(execution_id, message):
         await manager.broadcast(execution_id, message)
-        
+
     monkeypatch.setattr(broadcaster, "_safe_broadcast", fake_broadcast)
     exec_id = str(uuid.uuid4())
     a, b = FakeSocket(), FakeSocket()
@@ -288,9 +289,7 @@ async def test_ws_connection_success(
     execution_id = await _create_execution(client, auth_headers)
 
     sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "test-token"})
-    with sync_client.websocket_connect(
-        f"/api/v1/ws/executions/{execution_id}"
-    ) as ws:
+    with sync_client.websocket_connect(f"/api/v1/ws/executions/{execution_id}") as ws:
         ws.close()
 
 
@@ -308,17 +307,13 @@ async def test_ws_unauthorized_rejected(
     sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "wrong-token"})
     # Wrong key -> connection rejected before accept.
     with pytest.raises(WebSocketDisconnect):
-        with sync_client.websocket_connect(
-            f"/api/v1/ws/executions/{execution_id}"
-        ):
+        with sync_client.websocket_connect(f"/api/v1/ws/executions/{execution_id}"):
             pass
 
     # Valid key but different owner -> also rejected.
     sync_client = TestClient(fastapi_app, cookies={"eventflow_jwt": "other-token"})
     with pytest.raises(WebSocketDisconnect):
-        with sync_client.websocket_connect(
-            f"/api/v1/ws/executions/{execution_id}"
-        ):
+        with sync_client.websocket_connect(f"/api/v1/ws/executions/{execution_id}"):
             pass
 
 

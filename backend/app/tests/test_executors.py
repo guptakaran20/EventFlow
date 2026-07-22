@@ -133,4 +133,3 @@ async def test_webhook_executor_blocks_ssrf():
     result = await executor.execute(context)
     assert result.success is False
     assert "SSRF Blocked" in result.error
-

@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.core.errors import AppError
 from app.core.security import require_api_key_id
@@ -15,8 +15,8 @@ router = APIRouter(prefix="/api/v1/dlq", tags=["dlq"])
 async def list_dlq_jobs(
     owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
     service: Annotated[DlqService, Depends(get_dlq_service)],
-    limit: int = 50,
-    offset: int = 0,
+    limit: Annotated[int, Query(ge=0, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[DeadLetterJobResponse]:
     jobs = await service.list_dlq_jobs(owner_id, limit=limit, offset=offset)
     return [DeadLetterJobResponse.model_validate(job) for job in jobs]

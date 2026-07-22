@@ -23,20 +23,20 @@ def get_active_worker_count() -> int:
     return len([t for t in _active_background_tasks if not t.done()])
 
 
-def spawn_background_worker_task() -> asyncio.Task:
+def spawn_background_worker_task(owner_api_key_id: uuid.UUID | None = None) -> asyncio.Task:
     if get_active_worker_count() >= MAX_SPAWNED_WORKERS:
         raise AppError(
             f"Maximum background worker limit reached (max {MAX_SPAWNED_WORKERS})",
             code="worker_limit_reached",
             status_code=429,
         )
-    task = asyncio.create_task(start_background_worker())
+    task = asyncio.create_task(start_background_worker(owner_api_key_id))
     _active_background_tasks.add(task)
     task.add_done_callback(_active_background_tasks.discard)
     return task
 
 
-async def start_background_worker():
+async def start_background_worker(owner_api_key_id: uuid.UUID | None = None):
     settings = get_settings()
 
     def _build_queue_publisher():
@@ -53,7 +53,9 @@ async def start_background_worker():
 
     session_factory = get_session_factory()
     async with session_factory() as session:
-        worker = await WorkerService(session).register_worker(consumer_name, hostname)
+        worker = await WorkerService(session).register_worker(
+            consumer_name, hostname, owner_api_key_id
+        )
 
     stop_event = asyncio.Event()
     heartbeat = HeartbeatController(worker.id)

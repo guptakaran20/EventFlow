@@ -56,9 +56,7 @@ async def validate_outbound_url(url: str) -> None:
                     code="ssrf_blocked",
                 )
         except ValueError as err:
-            raise AppError(
-                f"Invalid IP address format: {ip_str}", code="ssrf_blocked"
-            ) from err
+            raise AppError(f"Invalid IP address format: {ip_str}", code="ssrf_blocked") from err
 
 
 @dataclass
@@ -203,9 +201,9 @@ class DelayExecutor:
                 code="invalid_executor_config",
             )
         duration = config["duration_seconds"]
-        if not isinstance(duration, int | float) or duration <= 0:
+        if not isinstance(duration, int | float) or duration <= 0 or duration > 3600:
             raise AppError(
-                "'duration_seconds' must be a positive number",
+                "'duration_seconds' must be a positive number and at most 3600",
                 code="invalid_executor_config",
             )
 

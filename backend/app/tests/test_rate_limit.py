@@ -7,6 +7,7 @@ from app.core.config import get_settings
 
 pytestmark = pytest.mark.anyio
 
+
 async def test_rate_limiting_middleware(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -24,7 +25,7 @@ async def test_rate_limiting_middleware(
             response = await client.get(endpoint, headers=headers)
             if i < 10:
                 assert response.status_code == 401, (
-                    f"Request {i+1} failed with {response.status_code}"
+                    f"Request {i + 1} failed with {response.status_code}"
                 )
                 assert "X-RateLimit-Remaining" in response.headers
             else:
@@ -85,4 +86,3 @@ async def test_health_and_metrics_polling_exempt_from_rate_limit(
             assert response.status_code == 200
     finally:
         get_settings.cache_clear()
-

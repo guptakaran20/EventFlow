@@ -381,7 +381,10 @@ async def run_worker(
                 await redis.xack(stream_name, consumer_group, message_id)
 
             tasks = [process_and_ack(msg_id, fields) for msg_id, fields in messages]
-            await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for res in results:
+                if isinstance(res, Exception):
+                    logger.exception("Unhandled exception in process_and_ack", exc_info=res)
 
             if heartbeat is not None:
                 await heartbeat.set_status(WorkerStatus.IDLE)

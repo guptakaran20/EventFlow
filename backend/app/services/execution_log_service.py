@@ -46,15 +46,16 @@ class ExecutionLogService:
         return list(result.scalars().all())
 
     async def get_timeline(
-        self, execution_id: uuid.UUID, owner_api_key_id: uuid.UUID
+        self, execution_id: uuid.UUID, owner_api_key_id: uuid.UUID, limit: int = 500
     ) -> list[ExecutionLog]:
-        """Chronological log stream for an execution. Unpaginated for MVP timeline use."""
+        """Chronological log stream for an execution. Paginated to 500 for MVP timeline use."""
         await self._check_ownership(execution_id, owner_api_key_id)
 
         stmt = (
             select(ExecutionLog)
             .where(ExecutionLog.execution_id == execution_id)
             .order_by(ExecutionLog.created_at.asc())
+            .limit(limit)
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())

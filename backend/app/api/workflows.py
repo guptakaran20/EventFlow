@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.core.security import AuthenticatedPrincipal, require_api_key, require_api_key_id
 from app.schemas.workflow import (
@@ -55,8 +55,8 @@ async def create_workflow(
 async def list_workflows(
     owner_id: Annotated[uuid.UUID, Depends(require_api_key_id)],
     service: Annotated[WorkflowService, Depends(get_workflow_service)],
-    limit: int = 50,
-    offset: int = 0,
+    limit: Annotated[int, Query(ge=0, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[WorkflowListResponse]:
     rows = await service.list_workflows(owner_id, limit=limit, offset=offset)
     return [
