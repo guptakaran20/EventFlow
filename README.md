@@ -9,7 +9,15 @@ EventFlow is a distributed workflow orchestration engine designed to execute, mo
 
 Modern infrastructure applications require task execution systems that survive worker crashes, network partitions, and transient downstream outages without corrupting state or dropping jobs. EventFlow solves this by decoupling request ingestion, queueing, and task execution. By pairing Redis Streams for message queueing with PostgreSQL for ACID-compliant state management, EventFlow delivers at-least-once execution guarantees, structured retry handling, and automatic recovery of orphaned execution nodes.
 
+<details>
+<summary><b>🔍 Click to view the EventFlow Platform interface</b></summary>
+<br>
+
 ![EventFlow Platform](images/goeventflow.vercel.app_.png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close preview ]</b></summary></p>
+</details>
 
 ---
 
@@ -296,37 +304,93 @@ EventFlow eliminates drop shadows, blurs, and glassmorphism. Depth is created st
 ### Operational Command Center
 Overview dashboard displaying active executions, message queue depth, active worker node metrics, and dead-letter queue count.
 
+<details>
+<summary><b>🔍 Click to view the Operational Command Center interface</b></summary>
+<br>
+
 ![Operational Command Center](images/goeventflow.vercel.app_dashboard.png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close interface ]</b></summary></p>
+</details>
 
 ### Visual DAG Workflow Canvas
 Interactive workflow construction interface allowing drag-and-drop node creation, parameter configuration, and connection routing.
 
+<details>
+<summary><b>🔍 Click to view the Visual DAG Workflow Canvas interface</b></summary>
+<br>
+
 ![Visual Workflow Editor](images/goeventflow.vercel.app_dashboard%20(4).png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close interface ]</b></summary></p>
+</details>
 
 ### Workflow Definitions & Versions
 List of active workflow definitions, version checksums, and metadata.
 
+<details>
+<summary><b>🔍 Click to view the Workflow Definitions & Versions interface</b></summary>
+<br>
+
 ![Workflows List](images/goeventflow.vercel.app_dashboard%20(2).png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close interface ]</b></summary></p>
+</details>
 
 ### Global Execution History
 Live updating ledger of global workflow executions with status indicators and start/completion timestamps.
 
+<details>
+<summary><b>🔍 Click to view the Global Execution History interface</b></summary>
+<br>
+
 ![Execution History](images/goeventflow.vercel.app_dashboard%20(1).png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close interface ]</b></summary></p>
+</details>
 
 ### Distributed Worker Node Telemetry
 Real-time worker process monitoring, hostname details, heartbeat recency, and current task assignments.
 
+<details>
+<summary><b>🔍 Click to view the Distributed Worker Node Telemetry interface</b></summary>
+<br>
+
 ![Worker Telemetry](images/goeventflow.vercel.app_dashboard%20(6).png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close interface ]</b></summary></p>
+</details>
 
 ### Dead Letter Queue (DLQ) & Remediation
 Dedicated isolation interface for inspecting failed execution nodes, attempt counts, exception tracebacks, and manual resolution controls.
 
+<details>
+<summary><b>🔍 Click to view the Dead Letter Queue (DLQ) interface</b></summary>
+<br>
+
 ![Dead Letter Queue](images/goeventflow.vercel.app_dashboard%20(5).png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close interface ]</b></summary></p>
+</details>
 
 ### API Key Authentication Portal
 Monochrome authentication portal enforcing API key credential verification.
 
+<details>
+<summary><b>🔍 Click to view the API Key Authentication Portal interface</b></summary>
+<br>
+
 ![API Key Portal](images/goeventflow.vercel.app_login.png)
+
+<br>
+<p align="right"><summary><b>[ ✕ Close interface ]</b></summary></p>
+</details>
 
 ---
 
