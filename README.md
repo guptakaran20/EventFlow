@@ -9,6 +9,8 @@ EventFlow is a distributed workflow orchestration engine designed to execute, mo
 
 Modern infrastructure applications require task execution systems that survive worker crashes, network partitions, and transient downstream outages without corrupting state or dropping jobs. EventFlow solves this by decoupling request ingestion, queueing, and task execution. By pairing Redis Streams for message queueing with PostgreSQL for ACID-compliant state management, EventFlow delivers at-least-once execution guarantees, structured retry handling, and automatic recovery of orphaned execution nodes.
 
+![EventFlow Platform](images/goeventflow.vercel.app_.png)
+
 ---
 
 ## Contents
@@ -21,6 +23,7 @@ Modern infrastructure applications require task execution systems that survive w
 - [Reliability Features](#reliability-features)
 - [Transport Layer](#transport-layer)
 - [Design Philosophy](#design-philosophy)
+- [Interface Showcase](#interface-showcase)
 - [Setup & Usage](#setup--usage)
 - [API Authentication](#api-authentication)
 - [Demo Workflows](#demo-workflows)
@@ -47,7 +50,7 @@ Modern infrastructure applications require task execution systems that survive w
 
 ## Core Concepts
 
-understanding the foundational abstractions behind EventFlow:
+Understanding the foundational abstractions behind EventFlow:
 
 ### Workflows
 A workflow represents a Directed Acyclic Graph (DAG) consisting of execution nodes and directed edges. Workflows define the structural logic of a pipeline, including HTTP calls, conditional branching, delays, and failure handling rules.
@@ -288,6 +291,45 @@ EventFlow eliminates drop shadows, blurs, and glassmorphism. Depth is created st
 
 ---
 
+## Interface Showcase
+
+### Operational Command Center
+Overview dashboard displaying active executions, message queue depth, active worker node metrics, and dead-letter queue count.
+
+![Operational Command Center](images/goeventflow.vercel.app_dashboard.png)
+
+### Visual DAG Workflow Canvas
+Interactive workflow construction interface allowing drag-and-drop node creation, parameter configuration, and connection routing.
+
+![Visual Workflow Editor](images/goeventflow.vercel.app_dashboard%20(4).png)
+
+### Workflow Definitions & Versions
+List of active workflow definitions, version checksums, and metadata.
+
+![Workflows List](images/goeventflow.vercel.app_dashboard%20(2).png)
+
+### Global Execution History
+Live updating ledger of global workflow executions with status indicators and start/completion timestamps.
+
+![Execution History](images/goeventflow.vercel.app_dashboard%20(1).png)
+
+### Distributed Worker Node Telemetry
+Real-time worker process monitoring, hostname details, heartbeat recency, and current task assignments.
+
+![Worker Telemetry](images/goeventflow.vercel.app_dashboard%20(6).png)
+
+### Dead Letter Queue (DLQ) & Remediation
+Dedicated isolation interface for inspecting failed execution nodes, attempt counts, exception tracebacks, and manual resolution controls.
+
+![Dead Letter Queue](images/goeventflow.vercel.app_dashboard%20(5).png)
+
+### API Key Authentication Portal
+Monochrome authentication portal enforcing API key credential verification.
+
+![API Key Portal](images/goeventflow.vercel.app_login.png)
+
+---
+
 ## Setup & Usage
 
 ### Prerequisites
@@ -431,6 +473,7 @@ EventFlow/
 │   │   ├── components/            # Reusable UI components & navigation
 │   │   └── lib/                   # API client utilities & TypeScript types
 │   └── public/                    # Static assets & icons
+├── images/                        # Platform screenshots & UI assets
 ├── proto/                         # Protocol Buffer definitions for gRPC transport
 │   └── execution.proto            # Execution service message & RPC definitions
 ├── docker-compose.yml             # Multi-service Docker orchestrator
